@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventario de Bienes Patrimoniales{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filters-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .bien-table {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .estado-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .estado-N { background: #d4edda; color: #155724; }
+    .estado-B { background: #cce5ff; color: #004085; }
+    .estado-R { background: #fff3cd; color: #856404; }
+    .estado-M { background: #f8d7da; color: #721c24; }
+    .estado-E { background: #e2e3e5; color: #383d41; }
+    .estado-C { background: #343a40; color: #ffffff; }
+    
+    .qr-btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+    
+    .actions-col {
+        width: 120px;
+    }
+    
+    .pagination-container {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-boxes"></i> Inventario de Bienes Patrimoniales</h1>
+        <div>
+            <a href="{% url 'bienes:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo Bien
+            </a>
+            <a href="{% url 'bienes:importar' %}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Importar Excel
+            </a>
+            <a href="{% url 'bienes:exportar' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-info">
+                <i class="fas fa-download"></i> Exportar
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filters-card">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Código, denominación, marca, serie...">
+            </div>
+            <div class="col-md-3">
+                <label for="estado" class="form-label">Estado</label>
+                <select class="form-select" id="estado" name="estado">
+                    <option value="">Todos los estados</option>
+                    {% for codigo, nombre in estados_bien %}
+                    <option value="{{ codigo }}" {% if codigo == estado_selected %}selected{% endif %}>
+                        {{ nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="oficina" class="form-label">Oficina</label>
+                <select class="form-select" id="oficina" name="oficina">
+                    <option value="">Todas las oficinas</option>
+                    {% for oficina in oficinas %}
+                    <option value="{{ oficina.id }}" {% if oficina.id|stringformat:"s" == oficina_selected %}selected{% endif %}>
+                        {{ oficina.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <a href="{% url 'bienes:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Tabla de bienes -->
+    <div class="bien-table">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Código Patrimonial</th>
+                        <th>Denominación</th>
+                        <th>Estado</th>
+                        <th>Marca/Modelo</th>
+                        <th>Oficina</th>
+                        <th>QR</th>
+                        <th class="actions-col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bien in bienes %}
+                    <tr>
+                        <td>
+                            <strong>{{ bien.codigo_patrimonial }}</strong>
+                            {% if bien.codigo_interno %}
+                            <br><small class="text-muted">{{ bien.codigo_interno }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ bien.catalogo.denominacion|truncatechars:50 }}
+                            {% if bien.serie %}
+                            <br><small class="text-muted">Serie: {{ bien.serie }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="estado-badge estado-{{ bien.estado_bien }}">
+                                {{ bien.estado_bien_texto }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if bien.marca %}{{ bien.marca }}{% endif %}
+                            {% if bien.modelo %}<br>{{ bien.modelo }}{% endif %}
+                            {% if bien.placa %}<br><small class="text-primary">{{ bien.placa }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {{ bien.oficina.nombre|truncatechars:30 }}
+                        </td>
+                        <td>
+                            {% if bien.qr_code %}
+                            <a href="{% url 'bienes:qr_image' bien.pk %}" class="btn btn-sm btn-outline-primary qr-btn" 
+                               target="_blank" title="Ver código QR">
+                                <i class="fas fa-qrcode"></i>
+                            </a>
+                            <br>
+                            <a href="{{ bien.url_qr }}" class="btn btn-sm btn-outline-success qr-btn mt-1" 
+                               target="_blank" title="Vista pública">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                            {% else %}
+                            <small class="text-muted">Sin QR</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group-vertical btn-group-sm">
+                                <a href="{% url 'bienes:detail' bien.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No se encontraron bienes patrimoniales.</p>
+                            <a href="{% url 'bienes:create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Registrar Primer Bien
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="pagination-container">
+        <nav aria-label="Paginación de bienes">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page=1">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} bienes
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form on select change
+    document.getElementById('estado').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    document.getElementById('oficina').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}

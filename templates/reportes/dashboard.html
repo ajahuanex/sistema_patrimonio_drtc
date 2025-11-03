@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Reportes - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-card h3 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-card p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    .alert-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+    .quick-action {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    .quick-action:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .quick-action i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Dashboard de Reportes</h1>
+                <div>
+                    <a href="{% url 'reportes:filtros_avanzados' %}" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtros Avanzados
+                    </a>
+                    <a href="{% url 'reportes:generar_reporte' %}" class="btn btn-success">
+                        <i class="fas fa-file-export"></i> Generar Reporte
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Principales -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ total_bienes|default:0 }}</h3>
+                <p><i class="fas fa-boxes"></i> Total de Bienes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ total_oficinas|default:0 }}</h3>
+                <p><i class="fas fa-building"></i> Oficinas Activas</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ resumen_ejecutivo.total_valor|floatformat:0|default:0 }}</h3>
+                <p><i class="fas fa-dollar-sign"></i> Valor Total (S/)</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h3>{{ mis_configuraciones|length }}</h3>
+                <p><i class="fas fa-cog"></i> Mis Configuraciones</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if alertas.bienes_malo_estado or alertas.bienes_raee or alertas.bienes_chatarra %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> Alertas de Mantenimiento</h5>
+                <div class="row">
+                    {% if alertas.bienes_malo_estado %}
+                    <div class="col-md-4">
+                        <div class="alert-card">
+                            <strong>{{ alertas.bienes_malo_estado }}</strong> bienes en mal estado
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if alertas.bienes_raee %}
+                    <div class="col-md-4">
+                        <div class="alert-card">
+                            <strong>{{ alertas.bienes_raee }}</strong> bienes RAEE
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if alertas.bienes_chatarra %}
+                    <div class="col-md-4">
+                        <div class="alert-card">
+                            <strong>{{ alertas.bienes_chatarra }}</strong> bienes chatarra
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Gráficos -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Distribución por Estado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="estadosChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top 5 Oficinas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="oficinasChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Acciones Rápidas -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <a href="{% url 'reportes:filtros_avanzados' %}" class="quick-action d-block text-decoration-none">
+                                <i class="fas fa-search"></i>
+                                <div>Buscar Bienes</div>
+                            </a>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <a href="{% url 'reportes:generar_reporte' %}" class="quick-action d-block text-decoration-none">
+                                <i class="fas fa-file-excel"></i>
+                                <div>Exportar Excel</div>
+                            </a>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <a href="{% url 'reportes:configuraciones_filtros' %}" class="quick-action d-block text-decoration-none">
+                                <i class="fas fa-cogs"></i>
+                                <div>Configuraciones</div>
+                            </a>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <a href="{% url 'reportes:mis_reportes' %}" class="quick-action d-block text-decoration-none">
+                                <i class="fas fa-history"></i>
+                                <div>Mis Reportes</div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuraciones Recientes -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Mis Configuraciones</h5>
+                </div>
+                <div class="card-body">
+                    {% if mis_configuraciones %}
+                        {% for config in mis_configuraciones %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ config.nombre }}</strong>
+                                <small class="text-muted d-block">
+                                    Usado {{ config.veces_usado }} veces
+                                </small>
+                            </div>
+                            <a href="{% url 'reportes:filtros_avanzados' %}?config={{ config.id }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                Usar
+                            </a>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'reportes:configuraciones_filtros' %}" class="btn btn-sm btn-link">
+                                Ver todas
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No tienes configuraciones guardadas.</p>
+                        <a href="{% url 'reportes:crear_configuracion_filtro' %}" class="btn btn-sm btn-primary">
+                            Crear Primera Configuración
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Reportes Recientes -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Reportes Recientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if reportes_recientes %}
+                        {% for reporte in reportes_recientes %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ reporte.nombre|truncatechars:20 }}</strong>
+                                <small class="text-muted d-block">
+                                    {{ reporte.fecha_inicio|date:"d/m/Y H:i" }}
+                                    {% if reporte.estado == 'COMPLETADO' %}
+                                        <span class="badge badge-success">Listo</span>
+                                    {% elif reporte.estado == 'GENERANDO' %}
+                                        <span class="badge badge-warning">Generando</span>
+                                    {% elif reporte.estado == 'ERROR' %}
+                                        <span class="badge badge-danger">Error</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% if reporte.puede_descargarse %}
+                            <a href="{% url 'reportes:descargar_reporte' reporte.pk %}" 
+                               class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'reportes:mis_reportes' %}" class="btn btn-sm btn-link">
+                                Ver todos
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No tienes reportes generados.</p>
+                        <a href="{% url 'reportes:generar_reporte' %}" class="btn btn-sm btn-success">
+                            Generar Primer Reporte
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de estados
+    const estadosCtx = document.getElementById('estadosChart').getContext('2d');
+    const estadosData = {{ resumen_ejecutivo.distribucion_estados|safe }};
+    
+    const estadosLabels = [];
+    const estadosValues = [];
+    const estadosColors = [];
+    
+    const colorMap = {
+        'N': '#28a745', // Verde para Nuevo
+        'B': '#17a2b8', // Azul para Bueno
+        'R': '#ffc107', // Amarillo para Regular
+        'M': '#fd7e14', // Naranja para Malo
+        'E': '#6f42c1', // Púrpura para RAEE
+        'C': '#dc3545'  // Rojo para Chatarra
+    };
+    
+    const estadosTexto = {
+        'N': 'Nuevo',
+        'B': 'Bueno',
+        'R': 'Regular',
+        'M': 'Malo',
+        'E': 'RAEE',
+        'C': 'Chatarra'
+    };
+    
+    for (const [estado, data] of Object.entries(estadosData)) {
+        estadosLabels.push(estadosTexto[estado] || estado);
+        estadosValues.push(data.total);
+        estadosColors.push(colorMap[estado] || '#6c757d');
+    }
+    
+    new Chart(estadosCtx, {
+        type: 'doughnut',
+        data: {
+            labels: estadosLabels,
+            datasets: [{
+                data: estadosValues,
+                backgroundColor: estadosColors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Gráfico de oficinas
+    const oficinasCtx = document.getElementById('oficinasChart').getContext('2d');
+    const oficinasData = {{ resumen_ejecutivo.top_oficinas|safe }};
+    
+    const oficinasLabels = oficinasData.map(item => item.oficina__nombre || 'Sin nombre');
+    const oficinasValues = oficinasData.map(item => item.total);
+    
+    new Chart(oficinasCtx, {
+        type: 'bar',
+        data: {
+            labels: oficinasLabels,
+            datasets: [{
+                label: 'Cantidad de Bienes',
+                data: oficinasValues,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

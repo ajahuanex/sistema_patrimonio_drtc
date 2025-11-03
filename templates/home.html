@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hero Section -->
+    <div class="jumbotron bg-primary text-white text-center py-5 mb-4">
+        <div class="container">
+            <h1 class="display-4">
+                <i class="fas fa-building"></i>
+                Sistema de Registro de Patrimonio
+            </h1>
+            <p class="lead">Dirección Regional de Transportes y Comunicaciones - Puno</p>
+            <p>Gestión integral del patrimonio institucional con códigos QR y reportes avanzados</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Total Bienes</h4>
+                            <h2 class="mb-0">0</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-box fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Oficinas</h4>
+                            <h2 class="mb-0">0</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-building fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Catálogo</h4>
+                            <h2 class="mb-0">0</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-book fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">QR Generados</h4>
+                            <h2 class="mb-0">0</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-qrcode fa-3x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos Rápidos -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-3">Accesos Rápidos</h3>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Registrar Bien</h5>
+                    <p class="card-text">Registra un nuevo bien patrimonial en el sistema</p>
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Registrar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-upload fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Importar Excel</h5>
+                    <p class="card-text">Importa bienes patrimoniales desde archivo Excel</p>
+                    <a href="#" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Importar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-search fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Buscar Bienes</h5>
+                    <p class="card-text">Busca bienes por código, placa, serie u otros criterios</p>
+                    <a href="#" class="btn btn-info">
+                        <i class="fas fa-search"></i> Buscar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-qrcode fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Generar QR</h5>
+                    <p class="card-text">Genera códigos QR para impresión en etiquetas</p>
+                    <a href="#" class="btn btn-warning">
+                        <i class="fas fa-qrcode"></i> Generar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-3x text-secondary mb-3"></i>
+                    <h5 class="card-title">Reportes</h5>
+                    <p class="card-text">Genera reportes avanzados con filtros personalizados</p>
+                    <a href="#" class="btn btn-secondary">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-book fa-3x text-dark mb-3"></i>
+                    <h5 class="card-title">Catálogo SBN</h5>
+                    <p class="card-text">Gestiona el catálogo oficial de bienes del SBN</p>
+                    <a href="{% url 'catalogo:lista' %}" class="btn btn-dark">
+                        <i class="fas fa-book"></i> Ver Catálogo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Funcionalidades Destacadas -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Funcionalidades del Sistema</h3>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-mobile-alt"></i> Acceso Móvil</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> Escaneo de códigos QR desde celular</li>
+                        <li><i class="fas fa-check text-success"></i> Actualización de estado en campo</li>
+                        <li><i class="fas fa-check text-success"></i> Captura de fotos y ubicación GPS</li>
+                        <li><i class="fas fa-check text-success"></i> Funcionamiento offline</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-print"></i> Impresión de Etiquetas</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> Generación de códigos QR únicos</li>
+                        <li><i class="fas fa-check text-success"></i> Formato ZPL para impresoras Zebra</li>
+                        <li><i class="fas fa-check text-success"></i> Plantillas personalizables</li>
+                        <li><i class="fas fa-check text-success"></i> Impresión masiva de stickers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-excel"></i> Importación/Exportación</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> Importación masiva desde Excel</li>
+                        <li><i class="fas fa-check text-success"></i> Validación automática de datos</li>
+                        <li><i class="fas fa-check text-success"></i> Exportación con filtros avanzados</li>
+                        <li><i class="fas fa-check text-success"></i> Múltiples formatos de salida</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Control y Auditoría</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> Historial completo de movimientos</li>
+                        <li><i class="fas fa-check text-success"></i> Seguimiento de cambios de estado</li>
+                        <li><i class="fas fa-check text-success"></i> Control de usuarios y permisos</li>
+                        <li><i class="fas fa-check text-success"></i> Trazabilidad completa</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

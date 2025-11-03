@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ bien.codigo_patrimonial }} - Información del Bien{% endblock %}
+
+{% block extra_css %}
+<style>
+    .qr-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .bien-info {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .bien-header {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .bien-title {
+        color: #007bff;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .bien-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+        margin: 5px 0 0 0;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-label {
+        font-weight: bold;
+        color: #495057;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        color: #212529;
+        font-size: 1rem;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #007bff;
+    }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+    
+    .estado-N { background: #d4edda; color: #155724; }
+    .estado-B { background: #cce5ff; color: #004085; }
+    .estado-R { background: #fff3cd; color: #856404; }
+    .estado-M { background: #f8d7da; color: #721c24; }
+    .estado-E { background: #e2e3e5; color: #383d41; }
+    .estado-C { background: #343a40; color: #ffffff; }
+    
+    .admin-actions {
+        background: #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .btn-admin {
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .mobile-optimized {
+        font-size: 1.1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .qr-container {
+            padding: 10px;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .bien-title {
+            font-size: 1.3rem;
+        }
+        
+        .mobile-optimized {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qr-container">
+    <div class="bien-info">
+        <div class="bien-header">
+            <h1 class="bien-title">{{ bien.codigo_patrimonial }}</h1>
+            <p class="bien-subtitle">{{ bien.denominacion }}</p>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Estado del Bien</span>
+                <span class="info-value">
+                    <span class="estado-badge estado-{{ bien.estado_bien }}">
+                        {{ bien.estado_bien_texto }}
+                    </span>
+                </span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Oficina</span>
+                <span class="info-value">{{ bien.oficina.nombre|default:"No asignada" }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Responsable</span>
+                <span class="info-value">{{ bien.responsable_actual|default:"No asignado" }}</span>
+            </div>
+            
+            {% if bien.marca %}
+            <div class="info-item">
+                <span class="info-label">Marca</span>
+                <span class="info-value">{{ bien.marca }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.modelo %}
+            <div class="info-item">
+                <span class="info-label">Modelo</span>
+                <span class="info-value">{{ bien.modelo }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.serie %}
+            <div class="info-item">
+                <span class="info-label">Serie</span>
+                <span class="info-value">{{ bien.serie }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.placa %}
+            <div class="info-item">
+                <span class="info-label">Placa</span>
+                <span class="info-value">{{ bien.placa }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.color %}
+            <div class="info-item">
+                <span class="info-label">Color</span>
+                <span class="info-value">{{ bien.color }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.dimension %}
+            <div class="info-item">
+                <span class="info-label">Dimensión</span>
+                <span class="info-value">{{ bien.dimension }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if bien.observaciones %}
+        <div class="info-item">
+            <span class="info-label">Observaciones</span>
+            <span class="info-value">{{ bien.observaciones }}</span>
+        </div>
+        {% endif %}
+        
+        {% if user_is_admin %}
+        <div class="admin-actions">
+            <h5>Acciones Administrativas</h5>
+            <a href="{% url 'bienes:detail' bien.pk %}" class="btn btn-primary btn-admin">
+                <i class="fas fa-eye"></i> Ver Detalle Completo
+            </a>
+            <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-warning btn-admin">
+                <i class="fas fa-edit"></i> Editar Bien
+            </a>
+            {% if is_mobile %}
+            <a href="{% url 'bienes:qr_mobile' bien.qr_code %}" class="btn btn-success btn-admin">
+                <i class="fas fa-mobile-alt"></i> Vista Móvil
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="text-center">
+        <small class="text-muted">
+            Escaneado el {{ "now"|date:"d/m/Y H:i" }}
+        </small>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh cada 30 segundos si es móvil
+    {% if is_mobile %}
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Filtros Avanzados - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .filter-section h5 {
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+    .form-check-input:checked {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    .results-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn-filter {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 10px 30px;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .btn-filter:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        color: white;
+    }
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+    }
+    .loading-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Filtros Avanzados</h1>
+                <div>
+                    <a href="{% url 'reportes:dashboard_reportes' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                    </a>
+                    <a href="{% url 'reportes:configuraciones_filtros' %}" class="btn btn-info">
+                        <i class="fas fa-cogs"></i> Mis Configuraciones
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de Filtros -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter"></i> Configurar Filtros
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Cargar Configuración Existente -->
+                    <div class="filter-section">
+                        <h6><i class="fas fa-folder-open"></i> Cargar Configuración</h6>
+                        <form method="post" class="mb-3">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                {{ cargar_form.configuracion }}
+                            </div>
+                            <button type="submit" name="cargar_configuracion" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-upload"></i> Cargar
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Formulario de Filtros -->
+                    <form method="post" id="filtrosForm">
+                        {% csrf_token %}
+                        
+                        <!-- Filtros por Oficina -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-building"></i> Oficinas</h6>
+                            <div class="form-group">
+                                {{ form.oficinas }}
+                            </div>
+                        </div>
+
+                        <!-- Filtros por Estado -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-info-circle"></i> Estados del Bien</h6>
+                            <div class="form-group">
+                                {{ form.estados_bien }}
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Catálogo -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-tags"></i> Catálogo</h6>
+                            <div class="form-group">
+                                <label>{{ form.grupos_catalogo.label }}</label>
+                                {{ form.grupos_catalogo }}
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.clases_catalogo.label }}</label>
+                                {{ form.clases_catalogo }}
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Marca y Modelo -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-industry"></i> Marca y Modelo</h6>
+                            <div class="form-group">
+                                <label>{{ form.marcas.label }}</label>
+                                {{ form.marcas }}
+                                <small class="form-text text-muted">{{ form.marcas.help_text }}</small>
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.modelos.label }}</label>
+                                {{ form.modelos }}
+                                <small class="form-text text-muted">{{ form.modelos.help_text }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Fechas -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-calendar"></i> Fechas</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.fecha_adquisicion_desde.label }}</label>
+                                        {{ form.fecha_adquisicion_desde }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.fecha_adquisicion_hasta.label }}</label>
+                                        {{ form.fecha_adquisicion_hasta }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.fecha_registro_desde.label }}</label>
+                                        {{ form.fecha_registro_desde }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.fecha_registro_hasta.label }}</label>
+                                        {{ form.fecha_registro_hasta }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Valores -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-dollar-sign"></i> Valores</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.valor_minimo.label }}</label>
+                                        {{ form.valor_minimo }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label>{{ form.valor_maximo.label }}</label>
+                                        {{ form.valor_maximo }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Texto -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-search"></i> Búsqueda de Texto</h6>
+                            <div class="form-group">
+                                <label>{{ form.codigo_patrimonial.label }}</label>
+                                {{ form.codigo_patrimonial }}
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.denominacion.label }}</label>
+                                {{ form.denominacion }}
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.serie.label }}</label>
+                                {{ form.serie }}
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.placa.label }}</label>
+                                {{ form.placa }}
+                            </div>
+                        </div>
+
+                        <!-- Operador Lógico -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-code-branch"></i> Operador Lógico</h6>
+                            <div class="form-group">
+                                {{ form.operador_principal }}
+                            </div>
+                        </div>
+
+                        <!-- Opciones de Guardado -->
+                        <div class="filter-section">
+                            <h6><i class="fas fa-save"></i> Guardar Configuración</h6>
+                            <div class="form-check">
+                                {{ form.guardar_configuracion }}
+                                <label class="form-check-label" for="{{ form.guardar_configuracion.id_for_label }}">
+                                    {{ form.guardar_configuracion.label }}
+                                </label>
+                            </div>
+                            <div class="form-group mt-2" id="nombreConfigDiv" style="display: none;">
+                                {{ form.nombre_configuracion }}
+                            </div>
+                            <div class="form-check" id="publicaConfigDiv" style="display: none;">
+                                {{ form.configuracion_publica }}
+                                <label class="form-check-label" for="{{ form.configuracion_publica.id_for_label }}">
+                                    {{ form.configuracion_publica.label }}
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="text-center">
+                            <button type="submit" name="aplicar_filtros" class="btn btn-filter btn-lg">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-lg ml-2" onclick="limpiarFiltros()">
+                                <i class="fas fa-eraser"></i> Limpiar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Resultados -->
+        <div class="col-md-8">
+            {% if resultados %}
+            <!-- Resumen de Resultados -->
+            <div class="results-summary">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4><i class="fas fa-chart-bar"></i> Resultados Encontrados</h4>
+                        <h2>{{ resultados.paginator.count }} bienes</h2>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <a href="{% url 'reportes:exportar_filtros_excel' %}?{{ request.GET.urlencode }}" 
+                           class="btn btn-light btn-lg">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </a>
+                        <a href="{% url 'reportes:generar_reporte' %}" class="btn btn-success btn-lg ml-2">
+                            <i class="fas fa-file-pdf"></i> Generar Reporte
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            {% if estadisticas %}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <h6><i class="fas fa-info-circle"></i> Por Estado</h6>
+                        {% for estado in estadisticas.por_estado %}
+                        <div class="d-flex justify-content-between">
+                            <span>{{ estado.estado_bien|default:"Sin estado" }}</span>
+                            <span><strong>{{ estado.total }}</strong> ({{ estado.porcentaje|floatformat:1 }}%)</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <h6><i class="fas fa-building"></i> Top Oficinas</h6>
+                        {% for oficina in estadisticas.por_oficina|slice:":5" %}
+                        <div class="d-flex justify-content-between">
+                            <span>{{ oficina.oficina__nombre|truncatechars:20 }}</span>
+                            <span><strong>{{ oficina.total }}</strong></span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tabla de Resultados -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Lista de Bienes
+                        <small class="text-muted">
+                            (Página {{ resultados.number }} de {{ resultados.paginator.num_pages }})
+                        </small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Denominación</th>
+                                    <th>Estado</th>
+                                    <th>Oficina</th>
+                                    <th>Marca/Modelo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bien in resultados %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ bien.codigo_patrimonial }}</strong>
+                                        {% if bien.qr_code %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-qrcode"></i> {{ bien.qr_code|truncatechars:10 }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ bien.catalogo.denominacion|truncatechars:40 }}
+                                        <br><small class="text-muted">{{ bien.catalogo.grupo }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{% if bien.estado_bien == 'N' %}success{% elif bien.estado_bien == 'B' %}info{% elif bien.estado_bien == 'R' %}warning{% elif bien.estado_bien == 'M' %}danger{% elif bien.estado_bien == 'E' %}secondary{% else %}dark{% endif %}">
+                                            {{ bien.get_estado_bien_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ bien.oficina.nombre|truncatechars:30 }}
+                                        <br><small class="text-muted">{{ bien.oficina.codigo }}</small>
+                                    </td>
+                                    <td>
+                                        {% if bien.marca %}{{ bien.marca }}{% endif %}
+                                        {% if bien.modelo %}<br>{{ bien.modelo }}{% endif %}
+                                        {% if bien.serie %}<br><small>S/N: {{ bien.serie }}</small>{% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'bienes:detail' bien.pk %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if bien.qr_code %}
+                                        <a href="{% url 'bienes:qr_detail' bien.qr_code %}" 
+                                           class="btn btn-sm btn-outline-info" 
+                                           title="Ver QR">
+                                            <i class="fas fa-qrcode"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            {% if resultados.has_other_pages %}
+            <nav aria-label="Paginación de resultados" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if resultados.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{{ request.GET.urlencode|slice:'1:' }}">Primera</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ resultados.previous_page_number }}{{ request.GET.urlencode|slice:'1:' }}">Anterior</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ resultados.number }} de {{ resultados.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if resultados.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ resultados.next_page_number }}{{ request.GET.urlencode|slice:'1:' }}">Siguiente</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ resultados.paginator.num_pages }}{{ request.GET.urlencode|slice:'1:' }}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <!-- Sin Resultados -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4>Configure los filtros y haga clic en "Aplicar Filtros"</h4>
+                    <p class="text-muted">
+                        Use el panel de la izquierda para configurar los criterios de búsqueda
+                        y encontrar los bienes patrimoniales que necesita.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Cargando...</span>
+        </div>
+        <h5 class="mt-3">Aplicando filtros...</h5>
+        <p class="text-muted">Por favor espere mientras procesamos su consulta.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar/ocultar campos de configuración
+    const guardarCheck = document.getElementById('{{ form.guardar_configuracion.id_for_label }}');
+    const nombreDiv = document.getElementById('nombreConfigDiv');
+    const publicaDiv = document.getElementById('publicaConfigDiv');
+    
+    if (guardarCheck) {
+        guardarCheck.addEventListener('change', function() {
+            if (this.checked) {
+                nombreDiv.style.display = 'block';
+                publicaDiv.style.display = 'block';
+            } else {
+                nombreDiv.style.display = 'none';
+                publicaDiv.style.display = 'none';
+            }
+        });
+    }
+    
+    // Mostrar loading al enviar formulario
+    const form = document.getElementById('filtrosForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'block';
+        });
+    }
+    
+    // Actualizar clases por grupo
+    const gruposSelect = document.querySelector('input[name="grupos_catalogo"]');
+    if (gruposSelect) {
+        // Implementar lógica para actualizar clases según grupos seleccionados
+        // Esta funcionalidad se puede expandir con AJAX
+    }
+});
+
+function limpiarFiltros() {
+    // Limpiar todos los campos del formulario
+    const form = document.getElementById('filtrosForm');
+    if (form) {
+        form.reset();
+        
+        // Limpiar checkboxes específicamente
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        
+        // Ocultar campos de configuración
+        document.getElementById('nombreConfigDiv').style.display = 'none';
+        document.getElementById('publicaConfigDiv').style.display = 'none';
+    }
+}
+
+// Función para vista previa de filtros (AJAX)
+function vistaPrevia() {
+    const formData = new FormData(document.getElementById('filtrosForm'));
+    
+    fetch('{% url "reportes:vista_previa_filtros" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar preview de resultados
+            console.log('Preview:', data);
+        } else {
+            console.error('Error en preview:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}

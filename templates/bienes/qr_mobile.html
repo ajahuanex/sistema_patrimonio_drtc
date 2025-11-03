@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bien.codigo_patrimonial }} - Móvil</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-size: 16px;
+        }
+        
+        .mobile-container {
+            max-width: 100%;
+            padding: 15px;
+        }
+        
+        .bien-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .bien-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .bien-code {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .bien-name {
+            font-size: 1rem;
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .bien-body {
+            padding: 20px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95rem;
+        }
+        
+        .info-value {
+            color: #212529;
+            font-size: 1rem;
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+        
+        .estado-badge {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        
+        .estado-N { background: #d4edda; color: #155724; }
+        .estado-B { background: #cce5ff; color: #004085; }
+        .estado-R { background: #fff3cd; color: #856404; }
+        .estado-M { background: #f8d7da; color: #721c24; }
+        .estado-E { background: #e2e3e5; color: #383d41; }
+        .estado-C { background: #343a40; color: #ffffff; }
+        
+        .admin-section {
+            background: #e9ecef;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        
+        .btn-mobile {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        
+        .update-form {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-select, .form-control {
+            font-size: 1.1rem;
+            padding: 12px;
+        }
+        
+        .timestamp {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .alert {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="bien-card">
+            <div class="bien-header">
+                <h1 class="bien-code">{{ bien.codigo_patrimonial }}</h1>
+                <p class="bien-name">{{ bien.denominacion }}</p>
+            </div>
+            
+            <div class="bien-body">
+                <div class="info-row">
+                    <span class="info-label">Estado</span>
+                    <span class="info-value">
+                        <span class="estado-badge estado-{{ bien.estado_bien }}">
+                            {{ bien.estado_bien_texto }}
+                        </span>
+                    </span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Oficina</span>
+                    <span class="info-value">{{ bien.oficina.nombre|default:"No asignada" }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Responsable</span>
+                    <span class="info-value">{{ bien.responsable_actual|default:"No asignado" }}</span>
+                </div>
+                
+                {% if bien.marca %}
+                <div class="info-row">
+                    <span class="info-label">Marca</span>
+                    <span class="info-value">{{ bien.marca }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bien.modelo %}
+                <div class="info-row">
+                    <span class="info-label">Modelo</span>
+                    <span class="info-value">{{ bien.modelo }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bien.serie %}
+                <div class="info-row">
+                    <span class="info-label">Serie</span>
+                    <span class="info-value">{{ bien.serie }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bien.placa %}
+                <div class="info-row">
+                    <span class="info-label">Placa</span>
+                    <span class="info-value">{{ bien.placa }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user_is_admin %}
+        <div class="admin-section">
+            <h5 class="mb-3"><i class="fas fa-tools"></i> Acciones Administrativas</h5>
+            
+            <button type="button" class="btn btn-success btn-mobile" onclick="toggleUpdateForm()">
+                <i class="fas fa-edit"></i> Actualizar Estado
+            </button>
+            
+            <a href="{% url 'bienes:detail' bien.pk %}" class="btn btn-primary btn-mobile">
+                <i class="fas fa-desktop"></i> Ver en Sistema Web
+            </a>
+        </div>
+        
+        <div class="update-form" id="updateForm" style="display: none;">
+            <h5 class="mb-3"><i class="fas fa-sync-alt"></i> Actualizar Estado del Bien</h5>
+            
+            <form id="estadoForm">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="nuevoEstado" class="form-label">Nuevo Estado</label>
+                    <select class="form-select" id="nuevoEstado" required>
+                        <option value="">Seleccionar estado...</option>
+                        {% for codigo, nombre in estados_bien %}
+                        <option value="{{ codigo }}" {% if codigo == bien.estado_bien %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="observaciones" class="form-label">Observaciones</label>
+                    <textarea class="form-control" id="observaciones" rows="3" 
+                              placeholder="Motivo del cambio de estado..."></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="foto" class="form-label">Foto del Bien (Opcional)</label>
+                    <input type="file" class="form-control" id="foto" accept="image/*" capture="camera">
+                </div>
+                
+                <button type="submit" class="btn btn-success btn-mobile">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+                
+                <button type="button" class="btn btn-secondary btn-mobile" onclick="toggleUpdateForm()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Guardando...</span>
+                </div>
+                <p class="mt-2">Actualizando estado...</p>
+            </div>
+            
+            <div id="alertContainer"></div>
+        </div>
+        {% endif %}
+        
+        <div class="timestamp">
+            <i class="fas fa-clock"></i> Escaneado el {{ "now"|date:"d/m/Y H:i:s" }}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPosition = null;
+        
+        // Obtener ubicación GPS
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    currentPosition = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                },
+                function(error) {
+                    console.log('Error obteniendo ubicación:', error);
+                }
+            );
+        }
+        
+        function toggleUpdateForm() {
+            const form = document.getElementById('updateForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            container.appendChild(alert);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        document.getElementById('estadoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nuevoEstado = document.getElementById('nuevoEstado').value;
+            const observaciones = document.getElementById('observaciones').value;
+            const foto = document.getElementById('foto').files[0];
+            
+            if (!nuevoEstado) {
+                showAlert('Debe seleccionar un estado', 'danger');
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.querySelector('#estadoForm button[type="submit"]').disabled = true;
+            
+            // Preparar datos
+            const formData = new FormData();
+            formData.append('bien_id', {{ bien.id }});
+            formData.append('estado', nuevoEstado);
+            formData.append('observaciones', observaciones);
+            
+            if (currentPosition) {
+                formData.append('ubicacion_gps', `${currentPosition.lat},${currentPosition.lng}`);
+            }
+            
+            if (foto) {
+                formData.append('foto', foto);
+            }
+            
+            // Agregar información del dispositivo
+            formData.append('device_info', JSON.stringify({
+                user_agent: navigator.userAgent,
+                screen_width: screen.width,
+                screen_height: screen.height,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Enviar datos
+            fetch('{% url "bienes:api_update_estado" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                document.querySelector('#estadoForm button[type="submit"]').disabled = false;
+                
+                if (data.success) {
+                    let message = data.message;
+                    if (data.warning) {
+                        showAlert(message, 'warning');
+                    } else {
+                        showAlert(message, 'success');
+                        // Mostrar información adicional
+                        if (data.bien && data.bien.estado_anterior && data.bien.estado_nuevo) {
+                            const detailMsg = `Estado cambiado de "${data.bien.estado_anterior.nombre}" a "${data.bien.estado_nuevo.nombre}"`;
+                            setTimeout(() => showAlert(detailMsg, 'info'), 1000);
+                        }
+                    }
+                    
+                    // Recargar página después de 3 segundos si hubo cambio real
+                    if (!data.warning) {
+                        setTimeout(() => {
+                            location.reload();
+                        }, 3000);
+                    }
+                } else {
+                    let errorMsg = data.error || 'Error al actualizar estado';
+                    if (data.error_code === 'OBSERVATIONS_REQUIRED') {
+                        errorMsg += '\n\nPor favor, agregue observaciones explicando el motivo del cambio.';
+                    }
+                    showAlert(errorMsg, 'danger');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                document.querySelector('#estadoForm button[type="submit"]').disabled = false;
+                
+                let errorMsg = 'Error de conexión';
+                if (error.message.includes('HTTP 403')) {
+                    errorMsg = 'No tiene permisos para actualizar este bien';
+                } else if (error.message.includes('HTTP 404')) {
+                    errorMsg = 'Bien no encontrado';
+                } else if (error.message.includes('HTTP 400')) {
+                    errorMsg = 'Datos inválidos. Verifique la información ingresada';
+                }
+                
+                showAlert(errorMsg, 'danger');
+                console.error('Error:', error);
+            });
+        });
+        
+        // Auto-refresh cada 60 segundos
+        setTimeout(function() {
+            location.reload();
+        }, 60000);
+    </script>
+</body>
+</html>

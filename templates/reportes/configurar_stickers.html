@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configurar Stickers ZPL - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .config-section h5 {
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+    .preview-area {
+        background: white;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .sticker-preview {
+        border: 2px solid #333;
+        background: white;
+        padding: 10px;
+        display: inline-block;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    .size-indicator {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 10px;
+    }
+    .field-checkbox {
+        margin-bottom: 8px;
+    }
+    .custom-size-inputs {
+        display: none;
+    }
+    .btn-preview {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        color: white;
+    }
+    .btn-preview:hover {
+        background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Configurar Stickers ZPL</h1>
+                <div>
+                    <a href="{% url 'reportes:plantillas_stickers' %}" class="btn btn-info">
+                        <i class="fas fa-templates"></i> Plantillas Predefinidas
+                    </a>
+                    <a href="{% url 'reportes:tutorial_stickers' %}" class="btn btn-secondary">
+                        <i class="fas fa-question-circle"></i> Tutorial
+                    </a>
+                    <a href="{% url 'reportes:dashboard_reportes' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="configuracionForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Panel de Configuración -->
+            <div class="col-md-8">
+                <!-- Tamaño del Sticker -->
+                <div class="config-section">
+                    <h5><i class="fas fa-ruler-combined"></i> Tamaño del Sticker</h5>
+                    
+                    <div class="form-group">
+                        <label>Tamaño Predefinido:</label>
+                        <select name="tamaño" id="tamañoSelect" class="form-control">
+                            {% for key, info in tamaños_predefinidos.items %}
+                            <option value="{{ key }}" {% if configuracion.tamaño == key %}selected{% endif %}>
+                                {{ info.descripcion }}
+                            </option>
+                            {% endfor %}
+                            <option value="personalizado" {% if configuracion.tamaño == 'personalizado' %}selected{% endif %}>
+                                Personalizado
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div id="customSizeInputs" class="custom-size-inputs">
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Ancho (dots):</label>
+                                <input type="number" name="ancho_personalizado" class="form-control" 
+                                       value="{{ configuracion.ancho|default:400 }}" min="200" max="1200">
+                            </div>
+                            <div class="col-6">
+                                <label>Alto (dots):</label>
+                                <input type="number" name="alto_personalizado" class="form-control" 
+                                       value="{{ configuracion.alto|default:300 }}" min="150" max="800">
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            1 pulgada = 203 dots (para impresoras de 203 DPI)
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Código QR -->
+                <div class="config-section">
+                    <h5><i class="fas fa-qrcode"></i> Código QR</h5>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="incluir_qr" id="incluirQR" class="form-check-input" 
+                               {% if configuracion.incluir_qr %}checked{% endif %}>
+                        <label class="form-check-label" for="incluirQR">
+                            Incluir código QR en el sticker
+                        </label>
+                    </div>
+                    
+                    <div id="qrOptions" class="mt-3">
+                        <div class="form-group">
+                            <label>Posición del QR:</label>
+                            <select name="posicion_qr" class="form-control">
+                                {% for value, label in posiciones_qr %}
+                                <option value="{{ value }}" {% if configuracion.posicion_qr == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campos a Incluir -->
+                <div class="config-section">
+                    <h5><i class="fas fa-list-check"></i> Información a Mostrar</h5>
+                    
+                    {% for field_key, field_label in campos_disponibles %}
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="{{ field_key }}" 
+                               id="campo_{{ field_key }}" class="form-check-input"
+                               {% if field_key in configuracion.campos_incluir %}checked{% endif %}>
+                        <label class="form-check-label" for="campo_{{ field_key }}">
+                            {{ field_label }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Opciones Adicionales -->
+                <div class="config-section">
+                    <h5><i class="fas fa-cogs"></i> Opciones Adicionales</h5>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="incluir_borde" id="incluirBorde" class="form-check-input"
+                               {% if configuracion.incluir_borde %}checked{% endif %}>
+                        <label class="form-check-label" for="incluirBorde">
+                            Incluir borde en el sticker
+                        </label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="incluir_fecha" id="incluirFecha" class="form-check-input"
+                               {% if configuracion.incluir_fecha %}checked{% endif %}>
+                        <label class="form-check-label" for="incluirFecha">
+                            Incluir fecha de generación
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                    <button type="button" class="btn btn-preview btn-lg ml-2" onclick="mostrarVistaPrevia()">
+                        <i class="fas fa-eye"></i> Vista Previa
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg ml-2" onclick="resetearConfiguracion()">
+                        <i class="fas fa-undo"></i> Resetear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel de Vista Previa -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-eye"></i> Vista Previa
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="preview-area" id="previewArea">
+                            <div class="text-muted">
+                                <i class="fas fa-eye fa-2x mb-3"></i>
+                                <p>Configure las opciones y haga clic en "Vista Previa" para ver cómo se verá el sticker</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6>Información de Configuración:</h6>
+                            <div id="configInfo">
+                                <small class="text-muted">
+                                    Seleccione las opciones para ver la información de configuración
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ayuda -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle"></i> Ayuda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <small>
+                            <strong>Consejos:</strong><br>
+                            • Use tamaños pequeños para stickers de inventario rápido<br>
+                            • Incluya el QR para acceso móvil<br>
+                            • Para vehículos, incluya la placa<br>
+                            • Pruebe la configuración antes de imprimir masivamente
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar/ocultar campos personalizados
+    const tamañoSelect = document.getElementById('tamañoSelect');
+    const customSizeInputs = document.getElementById('customSizeInputs');
+    
+    function toggleCustomSize() {
+        if (tamañoSelect.value === 'personalizado') {
+            customSizeInputs.style.display = 'block';
+        } else {
+            customSizeInputs.style.display = 'none';
+        }
+    }
+    
+    tamañoSelect.addEventListener('change', toggleCustomSize);
+    toggleCustomSize(); // Ejecutar al cargar
+    
+    // Mostrar/ocultar opciones de QR
+    const incluirQR = document.getElementById('incluirQR');
+    const qrOptions = document.getElementById('qrOptions');
+    
+    function toggleQROptions() {
+        if (incluirQR.checked) {
+            qrOptions.style.display = 'block';
+        } else {
+            qrOptions.style.display = 'none';
+        }
+    }
+    
+    incluirQR.addEventListener('change', toggleQROptions);
+    toggleQROptions(); // Ejecutar al cargar
+    
+    // Actualizar información de configuración en tiempo real
+    function actualizarConfigInfo() {
+        const tamaño = tamañoSelect.value;
+        const incluirQRChecked = incluirQR.checked;
+        const camposSeleccionados = document.querySelectorAll('input[name="campos_incluir"]:checked').length;
+        
+        let info = `<strong>Tamaño:</strong> ${tamaño}<br>`;
+        info += `<strong>QR:</strong> ${incluirQRChecked ? 'Sí' : 'No'}<br>`;
+        info += `<strong>Campos:</strong> ${camposSeleccionados} seleccionados`;
+        
+        document.getElementById('configInfo').innerHTML = info;
+    }
+    
+    // Escuchar cambios en todos los campos
+    document.querySelectorAll('input, select').forEach(element => {
+        element.addEventListener('change', actualizarConfigInfo);
+    });
+    
+    actualizarConfigInfo(); // Ejecutar al cargar
+});
+
+function mostrarVistaPrevia() {
+    // Simular vista previa (en una implementación real, esto haría una llamada AJAX)
+    const previewArea = document.getElementById('previewArea');
+    
+    previewArea.innerHTML = `
+        <div class="sticker-preview">
+            <div style="display: flex; align-items: flex-start;">
+                <div style="width: 60px; height: 60px; border: 1px solid #000; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-size: 8px;">
+                    QR
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 14px;">12345678</div>
+                    <div style="font-size: 10px;">ESCRITORIO DE OFICINA</div>
+                    <div style="font-size: 9px;">Oficina: ADM-001</div>
+                    <div style="font-size: 9px;">Estado: Bueno</div>
+                    <div style="font-size: 8px;">MARCA MODELO</div>
+                </div>
+            </div>
+            <div class="size-indicator">Vista previa aproximada</div>
+        </div>
+    `;
+}
+
+function resetearConfiguracion() {
+    if (confirm('¿Está seguro de que desea resetear la configuración?')) {
+        // Resetear formulario a valores por defecto
+        document.getElementById('tamañoSelect').value = 'mediano';
+        document.getElementById('incluirQR').checked = true;
+        document.querySelector('select[name="posicion_qr"]').value = 'izquierda';
+        document.getElementById('incluirBorde').checked = true;
+        document.getElementById('incluirFecha').checked = true;
+        
+        // Marcar campos por defecto
+        const camposDefault = ['codigo_patrimonial', 'denominacion', 'oficina', 'estado'];
+        document.querySelectorAll('input[name="campos_incluir"]').forEach(checkbox => {
+            checkbox.checked = camposDefault.includes(checkbox.value);
+        });
+        
+        // Actualizar vista
+        document.getElementById('customSizeInputs').style.display = 'none';
+        document.getElementById('qrOptions').style.display = 'block';
+        
+        // Limpiar vista previa
+        document.getElementById('previewArea').innerHTML = `
+            <div class="text-muted">
+                <i class="fas fa-eye fa-2x mb-3"></i>
+                <p>Configure las opciones y haga clic en "Vista Previa" para ver cómo se verá el sticker</p>
+            </div>
+        `;
+    }
+}
+
+// Validación del formulario
+document.getElementById('configuracionForm').addEventListener('submit', function(e) {
+    const camposSeleccionados = document.querySelectorAll('input[name="campos_incluir"]:checked').length;
+    
+    if (camposSeleccionados === 0) {
+        e.preventDefault();
+        alert('Debe seleccionar al menos un campo para mostrar en el sticker');
+        return false;
+    }
+    
+    // Validar tamaño personalizado
+    const tamaño = document.getElementById('tamañoSelect').value;
+    if (tamaño === 'personalizado') {
+        const ancho = parseInt(document.querySelector('input[name="ancho_personalizado"]').value);
+        const alto = parseInt(document.querySelector('input[name="alto_personalizado"]').value);
+        
+        if (ancho < 200 || ancho > 1200 || alto < 150 || alto > 800) {
+            e.preventDefault();
+            alert('Las dimensiones personalizadas deben estar dentro de los rangos permitidos');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock %}

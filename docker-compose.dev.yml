@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: patrimonio_db
+      POSTGRES_USER: patrimonio_user
+      POSTGRES_PASSWORD: patrimonio_dev_pass
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patrimonio_user -d patrimonio_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_files_dev:/app/media
+      - static_files_dev:/app/static
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgresql://patrimonio_user:patrimonio_dev_pass@db:5432/patrimonio_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-for-development-only
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+
+volumes:
+  postgres_data_dev:
+  media_files_dev:
+  static_files_dev:

@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ bien.codigo_patrimonial }} - Detalle del Bien{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bien-detail-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .bien-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .bien-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .bien-code {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .bien-name {
+        font-size: 1.2rem;
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+    }
+    
+    .bien-body {
+        padding: 30px;
+    }
+    
+    .info-section {
+        margin-bottom: 30px;
+    }
+    
+    .section-title {
+        color: #007bff;
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .info-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .info-label {
+        font-weight: bold;
+        color: #495057;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        color: #212529;
+        font-size: 1.1rem;
+        word-wrap: break-word;
+    }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 1rem;
+        text-transform: uppercase;
+    }
+    
+    .estado-N { background: #d4edda; color: #155724; }
+    .estado-B { background: #cce5ff; color: #004085; }
+    .estado-R { background: #fff3cd; color: #856404; }
+    .estado-M { background: #f8d7da; color: #721c24; }
+    .estado-E { background: #e2e3e5; color: #383d41; }
+    .estado-C { background: #343a40; color: #ffffff; }
+    
+    .qr-section {
+        background: #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .qr-code-display {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        display: inline-block;
+        margin: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .actions-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .btn-action {
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .historial-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .historial-item {
+        border-left: 4px solid #007bff;
+        background: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .historial-fecha {
+        font-size: 0.9rem;
+        color: #6c757d;
+        font-weight: bold;
+    }
+    
+    .historial-cambio {
+        font-size: 1rem;
+        margin: 5px 0;
+    }
+    
+    .historial-obs {
+        font-size: 0.9rem;
+        color: #495057;
+        font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+        .bien-detail-container {
+            padding: 10px;
+        }
+        
+        .bien-header {
+            padding: 20px;
+        }
+        
+        .bien-code {
+            font-size: 1.5rem;
+        }
+        
+        .bien-body {
+            padding: 20px;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bien-detail-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'bienes:list' %}">Bienes</a></li>
+            <li class="breadcrumb-item active">{{ bien.codigo_patrimonial }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Información principal del bien -->
+    <div class="bien-card">
+        <div class="bien-header">
+            <h1 class="bien-code">{{ bien.codigo_patrimonial }}</h1>
+            <p class="bien-name">{{ bien.denominacion }}</p>
+            <div class="mt-3">
+                <span class="estado-badge estado-{{ bien.estado_bien }}">
+                    {{ bien.estado_bien_texto }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="bien-body">
+            <!-- Información básica -->
+            <div class="info-section">
+                <h3 class="section-title"><i class="fas fa-info-circle"></i> Información Básica</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Código Interno</div>
+                        <div class="info-value">{{ bien.codigo_interno|default:"No asignado" }}</div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Catálogo</div>
+                        <div class="info-value">
+                            {{ bien.catalogo.codigo }} - {{ bien.catalogo.denominacion }}
+                            <br><small class="text-muted">{{ bien.grupo_clase }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Oficina</div>
+                        <div class="info-value">
+                            {{ bien.oficina.nombre }}
+                            <br><small class="text-muted">{{ bien.responsable_actual|default:"Sin responsable" }}</small>
+                        </div>
+                    </div>
+                    
+                    {% if bien.marca %}
+                    <div class="info-item">
+                        <div class="info-label">Marca</div>
+                        <div class="info-value">{{ bien.marca }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.modelo %}
+                    <div class="info-item">
+                        <div class="info-label">Modelo</div>
+                        <div class="info-value">{{ bien.modelo }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.color %}
+                    <div class="info-item">
+                        <div class="info-label">Color</div>
+                        <div class="info-value">{{ bien.color }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Información técnica -->
+            {% if bien.serie or bien.dimension or bien.es_vehiculo %}
+            <div class="info-section">
+                <h3 class="section-title"><i class="fas fa-cogs"></i> Información Técnica</h3>
+                <div class="info-grid">
+                    {% if bien.serie %}
+                    <div class="info-item">
+                        <div class="info-label">Número de Serie</div>
+                        <div class="info-value">{{ bien.serie }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.dimension %}
+                    <div class="info-item">
+                        <div class="info-label">Dimensiones</div>
+                        <div class="info-value">{{ bien.dimension }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.placa %}
+                    <div class="info-item">
+                        <div class="info-label">Placa</div>
+                        <div class="info-value">{{ bien.placa }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.matricula %}
+                    <div class="info-item">
+                        <div class="info-label">Matrícula</div>
+                        <div class="info-value">{{ bien.matricula }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.nro_motor %}
+                    <div class="info-item">
+                        <div class="info-label">Número de Motor</div>
+                        <div class="info-value">{{ bien.nro_motor }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bien.nro_chasis %}
+                    <div class="info-item">
+                        <div class="info-label">Número de Chasis</div>
+                        <div class="info-value">{{ bien.nro_chasis }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Código QR -->
+            {% if bien.qr_code %}
+            <div class="info-section">
+                <h3 class="section-title"><i class="fas fa-qrcode"></i> Código QR</h3>
+                <div class="qr-section">
+                    <div class="qr-code-display">
+                        <img src="{% url 'bienes:qr_image' bien.pk %}" alt="Código QR" style="max-width: 200px;">
+                    </div>
+                    <div class="mt-3">
+                        <p><strong>URL Pública:</strong></p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ bien.url_qr }}" readonly id="qrUrl">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('qrUrl')">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <a href="{{ bien.url_qr }}" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i> Abrir Vista Pública
+                            </a>
+                            <a href="{% url 'bienes:qr_mobile' bien.qr_code %}" target="_blank" class="btn btn-success">
+                                <i class="fas fa-mobile-alt"></i> Vista Móvil
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Observaciones -->
+            {% if bien.observaciones %}
+            <div class="info-section">
+                <h3 class="section-title"><i class="fas fa-sticky-note"></i> Observaciones</h3>
+                <div class="info-item">
+                    <div class="info-value">{{ bien.observaciones|linebreaks }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Historial de estados -->
+    {% if historial_estados %}
+    <div class="bien-card">
+        <div class="bien-body">
+            <h3 class="section-title"><i class="fas fa-history"></i> Historial de Estados</h3>
+            {% for historial in historial_estados %}
+            <div class="historial-item">
+                <div class="historial-fecha">
+                    {{ historial.created_at|date:"d/m/Y H:i" }} - {{ historial.created_by.get_full_name|default:historial.created_by.username }}
+                </div>
+                <div class="historial-cambio">
+                    <span class="estado-badge estado-{{ historial.estado_anterior }}">{{ historial.get_estado_anterior_display }}</span>
+                    <i class="fas fa-arrow-right mx-2"></i>
+                    <span class="estado-badge estado-{{ historial.estado_nuevo }}">{{ historial.get_estado_nuevo_display }}</span>
+                </div>
+                {% if historial.observaciones %}
+                <div class="historial-obs">{{ historial.observaciones }}</div>
+                {% endif %}
+                {% if historial.ubicacion_gps %}
+                <div class="historial-obs">
+                    <i class="fas fa-map-marker-alt"></i> GPS: {{ historial.ubicacion_gps }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Acciones -->
+    <div class="actions-section">
+        <h5><i class="fas fa-tools"></i> Acciones</h5>
+        <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-warning btn-action">
+            <i class="fas fa-edit"></i> Editar Bien
+        </a>
+        <a href="{% url 'bienes:list' %}" class="btn btn-secondary btn-action">
+            <i class="fas fa-list"></i> Volver al Listado
+        </a>
+        {% if perms.bienes.delete_bienpatrimonial %}
+        <button type="button" class="btn btn-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="fas fa-trash"></i> Eliminar Bien
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+{% if perms.bienes.delete_bienpatrimonial %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar el bien patrimonial <strong>{{ bien.codigo_patrimonial }}</strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="{% url 'bienes:delete' bien.pk %}" class="btn btn-danger">Eliminar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        element.select();
+        element.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        
+        // Mostrar feedback
+        const button = element.nextElementSibling;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }
+</script>
+{% endblock %}

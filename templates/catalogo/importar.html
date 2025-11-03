@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importar Catálogo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Importar Catálogo desde Excel</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Estadísticas actuales -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-list"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Total Catálogos</span>
+                                    <span class="info-box-number">{{ total_catalogos }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Activos</span>
+                                    <span class="info-box-number">{{ catalogos_activos }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-times"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Excluidos</span>
+                                    <span class="info-box-number">{{ catalogos_excluidos }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de importación -->
+                    <form method="post" enctype="multipart/form-data" id="form-importar">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label for="archivo_excel">Archivo Excel</label>
+                            <div class="input-group">
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="archivo_excel" 
+                                           name="archivo_excel" accept=".xlsx,.xls" required>
+                                    <label class="custom-file-label" for="archivo_excel">Seleccionar archivo...</label>
+                                </div>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" id="btn-validar">
+                                        <i class="fas fa-check"></i> Validar
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Formatos soportados: .xlsx, .xls. 
+                                El archivo debe contener las columnas: CATÁLOGO, Denominación, Grupo, Clase, Resolución, Estado
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="actualizar_existentes" 
+                                       name="actualizar_existentes">
+                                <label class="custom-control-label" for="actualizar_existentes">
+                                    Actualizar registros existentes
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Si está marcado, los registros con códigos existentes serán actualizados. 
+                                Si no, serán omitidos.
+                            </small>
+                        </div>
+
+                        <!-- Resultado de validación -->
+                        <div id="resultado-validacion" class="alert" style="display: none;"></div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="btn-importar" disabled>
+                                <i class="fas fa-upload"></i> Importar Catálogo
+                            </button>
+                            <a href="{% url 'catalogo:lista' %}" class="btn btn-secondary">
+                                <i class="fas fa-list"></i> Ver Catálogo
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Instrucciones -->
+                    <div class="mt-4">
+                        <h5>Instrucciones:</h5>
+                        <ol>
+                            <li>El archivo Excel debe contener las siguientes columnas (en cualquier orden):
+                                <ul>
+                                    <li><strong>CATÁLOGO</strong> - Código único del catálogo (8 dígitos)</li>
+                                    <li><strong>Denominación</strong> - Nombre del bien</li>
+                                    <li><strong>Grupo</strong> - Grupo del catálogo (ej: 04 AGRICOLA Y PESQUERO)</li>
+                                    <li><strong>Clase</strong> - Clase del catálogo (ej: 22 EQUIPO)</li>
+                                    <li><strong>Resolución</strong> - Resolución que aprueba el bien</li>
+                                    <li><strong>Estado</strong> - ACTIVO o EXCLUIDO</li>
+                                </ul>
+                            </li>
+                            <li>Los códigos de catálogo deben ser únicos</li>
+                            <li>Las denominaciones deben ser únicas</li>
+                            <li>Use el botón "Validar" para verificar la estructura antes de importar</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Actualizar label del archivo seleccionado
+    $('#archivo_excel').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName);
+        $('#btn-importar').prop('disabled', true);
+        $('#resultado-validacion').hide();
+    });
+
+    // Validar archivo
+    $('#btn-validar').on('click', function() {
+        var archivo = $('#archivo_excel')[0].files[0];
+        if (!archivo) {
+            alert('Por favor seleccione un archivo primero.');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('archivo', archivo);
+
+        $.ajax({
+            url: '{% url "catalogo:validar_archivo" %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $('#btn-validar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Validando...');
+            },
+            success: function(response) {
+                if (response.es_valido) {
+                    $('#resultado-validacion')
+                        .removeClass('alert-danger')
+                        .addClass('alert-success')
+                        .html('<i class="fas fa-check"></i> Archivo válido. Columnas encontradas: ' + 
+                              Object.keys(response.columnas_encontradas).join(', '))
+                        .show();
+                    $('#btn-importar').prop('disabled', false);
+                } else {
+                    $('#resultado-validacion')
+                        .removeClass('alert-success')
+                        .addClass('alert-danger')
+                        .html('<i class="fas fa-times"></i> Errores encontrados:<br>' + 
+                              response.errores.join('<br>'))
+                        .show();
+                    $('#btn-importar').prop('disabled', true);
+                }
+            },
+            error: function(xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.error : 'Error desconocido';
+                $('#resultado-validacion')
+                    .removeClass('alert-success')
+                    .addClass('alert-danger')
+                    .html('<i class="fas fa-times"></i> Error: ' + error)
+                    .show();
+            },
+            complete: function() {
+                $('#btn-validar').prop('disabled', false).html('<i class="fas fa-check"></i> Validar');
+            }
+        });
+    });
+
+    // Confirmar importación
+    $('#form-importar').on('submit', function(e) {
+        if (!confirm('¿Está seguro de que desea importar el catálogo? Esta acción puede crear o actualizar múltiples registros.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

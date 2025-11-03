@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR Móvil - Patrimonio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .scanner-container {
+            max-width: 100%;
+            padding: 15px;
+            min-height: 100vh;
+        }
+        
+        .scanner-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .scanner-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .scanner-subtitle {
+            font-size: 1rem;
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .scan-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .scan-input {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .scan-input input {
+            font-size: 1.1rem;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            width: 100%;
+        }
+        
+        .scan-input input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        
+        .scan-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn-scan {
+            padding: 15px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .results-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .result-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .result-success {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .result-error {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+        
+        .result-warning {
+            border-color: #ffc107;
+            background: #fffdf5;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .result-code {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .result-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-found { background: #d4edda; color: #155724; }
+        .status-not-found { background: #f8d7da; color: #721c24; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-invalid { background: #fff3cd; color: #856404; }
+        
+        .result-details {
+            font-size: 0.95rem;
+            color: #495057;
+        }
+        
+        .result-bien {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0,123,255,0.05);
+            border-radius: 6px;
+        }
+        
+        .bien-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .bien-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .bien-value {
+            color: #212529;
+        }
+        
+        .stats-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin: 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin: 5px 0 0 0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .alert {
+            margin-bottom: 15px;
+        }
+        
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .clear-btn:hover {
+            color: #dc3545;
+        }
+        
+        @media (max-width: 576px) {
+            .scan-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .bien-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanner-container">
+        <div class="scanner-header">
+            <h1 class="scanner-title">
+                <i class="fas fa-qrcode"></i> Escáner QR Móvil
+            </h1>
+            <p class="scanner-subtitle">Sistema de Patrimonio - DRTC Puno</p>
+        </div>
+        
+        <div class="scan-section">
+            <h5 class="mb-3">
+                <i class="fas fa-camera"></i> Escanear Código QR
+            </h5>
+            
+            <div class="scan-input">
+                <input type="text" 
+                       id="qrInput" 
+                       placeholder="Escanee o ingrese código QR..." 
+                       autocomplete="off"
+                       autofocus>
+                <button type="button" class="clear-btn" onclick="clearInput()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="scan-buttons">
+                <button type="button" class="btn btn-primary btn-scan" onclick="scanQR()">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <button type="button" class="btn btn-success btn-scan" onclick="batchScan()">
+                    <i class="fas fa-layer-group"></i> Lote
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Procesando...</span>
+                </div>
+                <p class="mt-2">Procesando códigos QR...</p>
+            </div>
+            
+            <div id="alertContainer"></div>
+        </div>
+        
+        <div class="stats-section" id="statsSection" style="display: none;">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-bar"></i> Estadísticas de Escaneo
+            </h5>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <p class="stat-number" id="totalScanned">0</p>
+                    <p class="stat-label">Escaneados</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-number" id="totalFound">0</p>
+                    <p class="stat-label">Encontrados</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-number" id="totalNotFound">0</p>
+                    <p class="stat-label">No Encontrados</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-number" id="totalErrors">0</p>
+                    <p class="stat-label">Errores</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Resultados
+                </h5>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearResults()">
+                    <i class="fas fa-trash"></i> Limpiar
+                </button>
+            </div>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let scannedCodes = [];
+        let totalStats = {
+            scanned: 0,
+            found: 0,
+            notFound: 0,
+            errors: 0
+        };
+        
+        // Auto-focus en el input
+        document.getElementById('qrInput').focus();
+        
+        // Manejar Enter en el input
+        document.getElementById('qrInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                scanQR();
+            }
+        });
+        
+        function clearInput() {
+            document.getElementById('qrInput').value = '';
+            document.getElementById('qrInput').focus();
+        }
+        
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            container.appendChild(alert);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        function updateStats() {
+            document.getElementById('totalScanned').textContent = totalStats.scanned;
+            document.getElementById('totalFound').textContent = totalStats.found;
+            document.getElementById('totalNotFound').textContent = totalStats.notFound;
+            document.getElementById('totalErrors').textContent = totalStats.errors;
+            
+            if (totalStats.scanned > 0) {
+                document.getElementById('statsSection').style.display = 'block';
+            }
+        }
+        
+        function addResult(result) {
+            const container = document.getElementById('resultsContainer');
+            const resultDiv = document.createElement('div');
+            
+            let statusClass = 'result-success';
+            let statusText = 'Encontrado';
+            let statusBadgeClass = 'status-found';
+            
+            if (result.status === 'not_found') {
+                statusClass = 'result-error';
+                statusText = 'No Encontrado';
+                statusBadgeClass = 'status-not-found';
+            } else if (result.status === 'error') {
+                statusClass = 'result-error';
+                statusText = 'Error';
+                statusBadgeClass = 'status-error';
+            } else if (result.status === 'invalid') {
+                statusClass = 'result-warning';
+                statusText = 'Inválido';
+                statusBadgeClass = 'status-invalid';
+            }
+            
+            resultDiv.className = `result-item ${statusClass}`;
+            
+            let content = `
+                <div class="result-header">
+                    <span class="result-code">${result.qr_code}</span>
+                    <span class="result-status ${statusBadgeClass}">${statusText}</span>
+                </div>
+            `;
+            
+            if (result.error) {
+                content += `<div class="result-details text-danger">${result.error}</div>`;
+            }
+            
+            if (result.bien) {
+                content += `
+                    <div class="result-bien">
+                        <div class="bien-info">
+                            <div><span class="bien-label">Código:</span> <span class="bien-value">${result.bien.codigo_patrimonial}</span></div>
+                            <div><span class="bien-label">Estado:</span> <span class="bien-value">${result.bien.estado_bien_texto}</span></div>
+                            <div><span class="bien-label">Oficina:</span> <span class="bien-value">${result.bien.oficina || 'No asignada'}</span></div>
+                            <div><span class="bien-label">Marca:</span> <span class="bien-value">${result.bien.marca || 'N/A'}</span></div>
+                        </div>
+                        <div class="mt-2">
+                            <strong>Denominación:</strong> ${result.bien.denominacion}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = content;
+            container.insertBefore(resultDiv, container.firstChild);
+            
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+        
+        function scanQR() {
+            const qrCode = document.getElementById('qrInput').value.trim();
+            
+            if (!qrCode) {
+                showAlert('Por favor, ingrese un código QR', 'warning');
+                return;
+            }
+            
+            // Verificar si ya fue escaneado
+            if (scannedCodes.includes(qrCode)) {
+                showAlert('Este código ya fue escaneado', 'info');
+                clearInput();
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch('{% url "bienes:api_scan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    qr_code: qrCode,
+                    device_info: {
+                        user_agent: navigator.userAgent,
+                        screen_width: screen.width,
+                        screen_height: screen.height,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    scannedCodes.push(qrCode);
+                    totalStats.scanned++;
+                    totalStats.found++;
+                    
+                    addResult({
+                        qr_code: qrCode,
+                        status: 'found',
+                        bien: data.bien
+                    });
+                    
+                    showAlert(`Bien encontrado: ${data.bien.codigo_patrimonial}`, 'success');
+                } else {
+                    totalStats.scanned++;
+                    totalStats.notFound++;
+                    
+                    addResult({
+                        qr_code: qrCode,
+                        status: 'not_found',
+                        error: data.error
+                    });
+                    
+                    showAlert(data.error, 'danger');
+                }
+                
+                updateStats();
+                clearInput();
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                totalStats.scanned++;
+                totalStats.errors++;
+                
+                addResult({
+                    qr_code: qrCode,
+                    status: 'error',
+                    error: 'Error de conexión'
+                });
+                
+                updateStats();
+                showAlert('Error de conexión', 'danger');
+                console.error('Error:', error);
+                clearInput();
+            });
+        }
+        
+        function batchScan() {
+            if (scannedCodes.length === 0) {
+                showAlert('No hay códigos para procesar en lote', 'warning');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            fetch('{% url "bienes:api_batch_scan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    qr_codes: scannedCodes,
+                    device_info: {
+                        user_agent: navigator.userAgent,
+                        screen_width: screen.width,
+                        screen_height: screen.height,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    showAlert(`Procesamiento completado: ${data.summary.found} encontrados, ${data.summary.not_found} no encontrados`, 'info');
+                } else {
+                    showAlert('Error en el procesamiento por lotes', 'danger');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showAlert('Error de conexión en procesamiento por lotes', 'danger');
+                console.error('Error:', error);
+            });
+        }
+        
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('statsSection').style.display = 'none';
+            
+            scannedCodes = [];
+            totalStats = {
+                scanned: 0,
+                found: 0,
+                notFound: 0,
+                errors: 0
+            };
+            
+            updateStats();
+            showAlert('Resultados limpiados', 'info');
+        }
+        
+        // Auto-focus cuando se regresa a la página
+        window.addEventListener('focus', function() {
+            document.getElementById('qrInput').focus();
+        });
+    </script>
+    
+    <!-- CSRF Token -->
+    {% csrf_token %}
+</body>
+</html>

@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Importar Oficinas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Importar Oficinas desde Excel</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Estadísticas actuales -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-building"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Total Oficinas</span>
+                                    <span class="info-box-number">{{ total_oficinas }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Activas</span>
+                                    <span class="info-box-number">{{ oficinas_activas }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-times"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Inactivas</span>
+                                    <span class="info-box-number">{{ oficinas_inactivas }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de importación -->
+                    <form method="post" enctype="multipart/form-data" id="form-importar">
+                        {% csrf_token %}
+                        
+                        <div class="form-group mb-3">
+                            <label for="archivo_excel" class="form-label">Archivo Excel</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="archivo_excel" 
+                                       name="archivo_excel" accept=".xlsx,.xls" required>
+                                <button type="button" class="btn btn-info" id="btn-validar">
+                                    <i class="fas fa-check"></i> Validar
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Formatos soportados: .xlsx, .xls. 
+                                El archivo debe contener las columnas: CODIGO, NOMBRE, RESPONSABLE (mínimo requerido)
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="actualizar_existentes" 
+                                       name="actualizar_existentes">
+                                <label class="form-check-label" for="actualizar_existentes">
+                                    Actualizar oficinas existentes
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Si está marcado, las oficinas con códigos existentes serán actualizadas. 
+                                Si no, serán omitidas.
+                            </div>
+                        </div>
+
+                        <!-- Resultado de validación -->
+                        <div id="resultado-validacion" class="alert" style="display: none;"></div>
+
+                        <div class="form-group mb-3">
+                            <button type="submit" class="btn btn-primary" id="btn-importar" disabled>
+                                <i class="fas fa-upload"></i> Importar Oficinas
+                            </button>
+                            <a href="{% url 'oficinas:lista' %}" class="btn btn-secondary">
+                                <i class="fas fa-list"></i> Ver Oficinas
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Instrucciones -->
+                    <div class="mt-4">
+                        <h5>Instrucciones:</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Columnas Requeridas:</h6>
+                                <ul>
+                                    <li><strong>CODIGO</strong> - Código único de la oficina</li>
+                                    <li><strong>NOMBRE</strong> - Nombre de la oficina</li>
+                                    <li><strong>RESPONSABLE</strong> - Nombre del responsable</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Columnas Opcionales:</h6>
+                                <ul>
+                                    <li><strong>DESCRIPCION</strong> - Descripción de la oficina</li>
+                                    <li><strong>CARGO_RESPONSABLE</strong> - Cargo del responsable</li>
+                                    <li><strong>TELEFONO</strong> - Teléfono de contacto</li>
+                                    <li><strong>EMAIL</strong> - Correo electrónico</li>
+                                    <li><strong>UBICACION</strong> - Ubicación física</li>
+                                    <li><strong>ESTADO</strong> - ACTIVO/INACTIVO (por defecto ACTIVO)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>Notas importantes:</h6>
+                            <ul>
+                                <li>Los códigos de oficina deben ser únicos</li>
+                                <li>Las columnas pueden tener nombres alternativos (ej: CÓDIGO, COD_OFICINA)</li>
+                                <li>Use el botón "Validar" para verificar la estructura antes de importar</li>
+                                <li>El sistema detectará automáticamente variaciones en los nombres de columnas</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Actualizar cuando se seleccione archivo
+    $('#archivo_excel').on('change', function() {
+        $('#btn-importar').prop('disabled', true);
+        $('#resultado-validacion').hide();
+    });
+
+    // Validar archivo
+    $('#btn-validar').on('click', function() {
+        var archivo = $('#archivo_excel')[0].files[0];
+        if (!archivo) {
+            alert('Por favor seleccione un archivo primero.');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('archivo', archivo);
+
+        $.ajax({
+            url: '{% url "oficinas:validar_archivo" %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $('#btn-validar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Validando...');
+            },
+            success: function(response) {
+                if (response.es_valido) {
+                    var columnasEncontradas = Object.keys(response.columnas_encontradas);
+                    var columnasRequeridas = columnasEncontradas.filter(col => 
+                        ['CODIGO', 'NOMBRE', 'RESPONSABLE'].includes(col)
+                    );
+                    var columnasOpcionales = columnasEncontradas.filter(col => 
+                        !['CODIGO', 'NOMBRE', 'RESPONSABLE'].includes(col)
+                    );
+                    
+                    var mensaje = '<i class="fas fa-check"></i> Archivo válido.<br>';
+                    mensaje += '<strong>Columnas requeridas:</strong> ' + columnasRequeridas.join(', ') + '<br>';
+                    if (columnasOpcionales.length > 0) {
+                        mensaje += '<strong>Columnas opcionales encontradas:</strong> ' + columnasOpcionales.join(', ');
+                    }
+                    
+                    $('#resultado-validacion')
+                        .removeClass('alert-danger')
+                        .addClass('alert-success')
+                        .html(mensaje)
+                        .show();
+                    $('#btn-importar').prop('disabled', false);
+                } else {
+                    $('#resultado-validacion')
+                        .removeClass('alert-success')
+                        .addClass('alert-danger')
+                        .html('<i class="fas fa-times"></i> Errores encontrados:<br>' + 
+                              response.errores.join('<br>'))
+                        .show();
+                    $('#btn-importar').prop('disabled', true);
+                }
+            },
+            error: function(xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.error : 'Error desconocido';
+                $('#resultado-validacion')
+                    .removeClass('alert-success')
+                    .addClass('alert-danger')
+                    .html('<i class="fas fa-times"></i> Error: ' + error)
+                    .show();
+            },
+            complete: function() {
+                $('#btn-validar').prop('disabled', false).html('<i class="fas fa-check"></i> Validar');
+            }
+        });
+    });
+
+    // Confirmar importación
+    $('#form-importar').on('submit', function(e) {
+        if (!confirm('¿Está seguro de que desea importar las oficinas? Esta acción puede crear o actualizar múltiples registros.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}
