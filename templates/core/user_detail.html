@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Usuario - {{ user_obj.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Información del usuario -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Información del Usuario</h3>
+                    <div>
+                        <a href="{% url 'core:user_edit' user_obj.id %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'core:user_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Datos Básicos</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Usuario:</strong></td>
+                                    <td>{{ user_obj.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nombre Completo:</strong></td>
+                                    <td>{{ user_obj.get_full_name|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ user_obj.email|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha de Registro:</strong></td>
+                                    <td>{{ user_obj.date_joined|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Último Acceso:</strong></td>
+                                    <td>{{ user_obj.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5>Información Profesional</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Rol:</strong></td>
+                                    <td>
+                                        <span class="badge badge-info">{{ user_obj.profile.get_role_display }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cargo:</strong></td>
+                                    <td>{{ user_obj.profile.cargo|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Teléfono:</strong></td>
+                                    <td>{{ user_obj.profile.telefono|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Oficina:</strong></td>
+                                    <td>{{ user_obj.profile.oficina.nombre|default:"No asignada" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Estado:</strong></td>
+                                    <td>
+                                        {% if user_obj.profile.is_active %}
+                                            <span class="badge badge-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Historial de auditoría -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Historial de Actividad (Últimas 20 acciones)</h3>
+                </div>
+                
+                <div class="card-body">
+                    {% if audit_logs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Acción</th>
+                                        <th>Modelo</th>
+                                        <th>Objeto</th>
+                                        <th>IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in audit_logs %}
+                                    <tr>
+                                        <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+                                        <td>
+                                            <span class="badge badge-secondary">{{ log.get_action_display }}</span>
+                                        </td>
+                                        <td>{{ log.model_name }}</td>
+                                        <td>{{ log.object_repr|default:"-" }}</td>
+                                        <td>{{ log.ip_address|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No hay actividad registrada para este usuario.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de permisos -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Permisos del Usuario</h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Gestionar Usuarios
+                            {% if permissions.can_manage_users %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Crear Bienes
+                            {% if permissions.can_create_bienes %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Editar Bienes
+                            {% if permissions.can_edit_bienes %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Eliminar Bienes
+                            {% if permissions.can_delete_bienes %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Importar Datos
+                            {% if permissions.can_import_data %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Exportar Datos
+                            {% if permissions.can_export_data %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Generar Reportes
+                            {% if permissions.can_generate_reports %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Gestionar Catálogo
+                            {% if permissions.can_manage_catalogo %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Gestionar Oficinas
+                            {% if permissions.can_manage_oficinas %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Actualizar Móvil
+                            {% if permissions.can_update_mobile %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas del usuario -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Estadísticas</h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info">
+                                    <i class="fas fa-calendar"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Días Activo</span>
+                                    <span class="info-box-number">
+                                        {{ user_obj.date_joined|timesince|truncatewords:1 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success">
+                                    <i class="fas fa-history"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Acciones</span>
+                                    <span class="info-box-number">{{ audit_logs|length }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

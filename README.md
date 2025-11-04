@@ -34,6 +34,23 @@ Sistema integral para la gestión del patrimonio de la Dirección Regional de Tr
 scripts\dev-setup.bat     # Windows
 ```
 
+### Despliegue en Producción
+
+```bash
+# Configurar variables de entorno
+cp .env.prod.example .env.prod
+# Editar .env.prod con configuraciones de producción
+
+# Desplegar con SSL automático
+./scripts/deploy.sh tu-dominio.com tu-email@gmail.com production    # Linux/Mac
+scripts\deploy.bat tu-dominio.com tu-email@gmail.com production     # Windows
+
+# Acceder al sistema
+# - Aplicación: https://tu-dominio.com
+# - Admin: https://tu-dominio.com/admin/
+# - Credenciales iniciales: admin / admin123
+```
+
 ### Opción 1: Con Docker (Recomendado)
 
 ```bash
@@ -245,38 +262,59 @@ sistema_patrimonio_drtc/
 
 ## 🔄 Backup y Mantenimiento
 
-### Backup de Base de Datos
+### Backup Automático (Producción)
 
 ```bash
-# Crear backup
+# Crear backup completo
+./scripts/backup.sh
+
+# Restaurar backup
+./scripts/restore.sh YYYYMMDD_HHMMSS
+
+# Monitoreo automático
+./scripts/monitor.sh
+```
+
+### Backup Manual
+
+```bash
+# Crear backup de base de datos
 docker-compose exec db pg_dump -U patrimonio_user patrimonio_db > backup_$(date +%Y%m%d).sql
 
 # Restaurar backup
 docker-compose exec -T db psql -U patrimonio_user patrimonio_db < backup_20241201.sql
-```
 
-### Backup de Archivos Media
-
-```bash
-# Crear backup de archivos
+# Backup de archivos media
 docker run --rm -v patrimonio_media_files:/data -v $(pwd):/backup alpine tar czf /backup/media_backup_$(date +%Y%m%d).tar.gz -C /data .
-
-# Restaurar archivos
-docker run --rm -v patrimonio_media_files:/data -v $(pwd):/backup alpine tar xzf /backup/media_backup_20241201.tar.gz -C /data
 ```
 
-### Logs y Monitoreo
+### Monitoreo y Logs
 
 ```bash
-# Ver logs
-docker-compose logs -f web
-docker-compose logs -f celery
+# Health checks
+curl https://tu-dominio.com/health/
+curl https://tu-dominio.com/health/detailed/
+
+# Ver logs de producción
+docker-compose -f docker-compose.prod.yml logs -f web
+docker-compose -f docker-compose.prod.yml logs -f nginx
+docker-compose -f docker-compose.prod.yml logs -f celery
 
 # Monitoreo de recursos
 docker stats
 
 # Limpiar logs antiguos
 docker system prune -f
+```
+
+### SSL y Certificados
+
+```bash
+# Configurar SSL con Let's Encrypt
+./scripts/setup-ssl.sh tu-dominio.com tu-email@gmail.com
+
+# Renovar certificados (automático con cron)
+docker-compose -f docker-compose.prod.yml run --rm certbot renew
 ```
 
 ## 🤝 Contribución
@@ -290,6 +328,13 @@ docker system prune -f
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## 📚 Documentación
+
+- **[Guía de Instalación](docs/INSTALLATION.md)**: Instalación completa paso a paso
+- **[Guía de Mantenimiento](docs/MAINTENANCE.md)**: Procedimientos de mantenimiento y monitoreo
+- **[Guía de Administrador](docs/ADMIN_GUIDE.md)**: Manual de usuario para administradores
+- **[Gestión de Usuarios](docs/USER_MANAGEMENT.md)**: Configuración de usuarios y permisos
 
 ## 📞 Soporte
 

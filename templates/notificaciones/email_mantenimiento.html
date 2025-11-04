@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notificacion.titulo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-left: 5px solid #dc3545;
+        }
+        .footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            font-size: 12px;
+        }
+        .alert-box {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .stats {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 ALERTA DE MANTENIMIENTO</h1>
+        <h2>Sistema de Patrimonio</h2>
+    </div>
+    
+    <div class="content">
+        <p><strong>Estimado/a {{ usuario.get_full_name|default:usuario.username }},</strong></p>
+        
+        <div class="alert-box">
+            <h3>⚠️ Atención Requerida</h3>
+            <p>{{ notificacion.mensaje }}</p>
+        </div>
+        
+        {% if datos_contexto.cantidad_bienes %}
+        <div class="stats">
+            <h3>📊 Resumen de Mantenimiento</h3>
+            <ul>
+                <li><strong>Cantidad de bienes:</strong> {{ datos_contexto.cantidad_bienes }}</li>
+                <li><strong>Configuración de alerta:</strong> {{ datos_contexto.alerta_nombre }}</li>
+                {% if datos_contexto.tipo_bien %}
+                <li><strong>Tipo de bien:</strong> {{ datos_contexto.tipo_bien }}</li>
+                {% endif %}
+                {% if datos_contexto.dias_anticipacion %}
+                <li><strong>Días de anticipación:</strong> {{ datos_contexto.dias_anticipacion }}</li>
+                {% endif %}
+                {% if datos_contexto.frecuencia_meses %}
+                <li><strong>Frecuencia de mantenimiento:</strong> {{ datos_contexto.frecuencia_meses }} meses</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px;">
+            <h3>🔍 Acciones Recomendadas:</h3>
+            <ul>
+                <li>Revisar la lista de bienes que requieren mantenimiento</li>
+                <li>Programar las actividades de mantenimiento necesarias</li>
+                <li>Actualizar el estado de los bienes después del mantenimiento</li>
+                <li>Registrar las observaciones correspondientes en el sistema</li>
+            </ul>
+        </div>
+        
+        {% if notificacion.url_accion %}
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ base_url }}{{ notificacion.url_accion }}" class="btn">Ver Bienes Pendientes</a>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px;">
+            <p><strong>📅 Información de la Alerta:</strong></p>
+            <ul>
+                <li><strong>Fecha de alerta:</strong> {{ notificacion.created_at|date:"d/m/Y H:i" }}</li>
+                <li><strong>Prioridad:</strong> {{ notificacion.get_prioridad_display }}</li>
+                {% if notificacion.fecha_expiracion %}
+                <li><strong>Válida hasta:</strong> {{ notificacion.fecha_expiracion|date:"d/m/Y" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Este es un mensaje automático del Sistema de Patrimonio</p>
+        <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+        <p>Para cambiar sus preferencias de notificación, ingrese al sistema y vaya a Configuración > Notificaciones</p>
+    </div>
+</body>
+</html>

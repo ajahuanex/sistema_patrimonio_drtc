@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notificacion.titulo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-left: 5px solid #007bff;
+        }
+        .footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            font-size: 12px;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .movement-details {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .movement-flow {
+            text-align: center;
+            font-size: 18px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 MOVIMIENTO DE BIEN</h1>
+        <h2>Sistema de Patrimonio</h2>
+    </div>
+    
+    <div class="content">
+        <p><strong>Estimado/a {{ usuario.get_full_name|default:usuario.username }},</strong></p>
+        
+        <div class="info-box">
+            <h3>📦 Notificación de Transferencia</h3>
+            <p>{{ notificacion.mensaje }}</p>
+        </div>
+        
+        {% if datos_contexto.bien_codigo %}
+        <div class="movement-details">
+            <h3>📋 Detalles del Bien</h3>
+            <ul>
+                <li><strong>Código Patrimonial:</strong> {{ datos_contexto.bien_codigo }}</li>
+                {% if datos_contexto.bien_denominacion %}
+                <li><strong>Denominación:</strong> {{ datos_contexto.bien_denominacion }}</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if datos_contexto.oficina_origen and datos_contexto.oficina_destino %}
+        <div class="movement-flow">
+            <strong>{{ datos_contexto.oficina_origen }}</strong>
+            <br>
+            ⬇️
+            <br>
+            <strong>{{ datos_contexto.oficina_destino }}</strong>
+        </div>
+        {% endif %}
+        
+        {% if datos_contexto.motivo or datos_contexto.fecha_movimiento %}
+        <div class="movement-details">
+            <h3>ℹ️ Información del Movimiento</h3>
+            <ul>
+                {% if datos_contexto.motivo %}
+                <li><strong>Motivo:</strong> {{ datos_contexto.motivo }}</li>
+                {% endif %}
+                {% if datos_contexto.fecha_movimiento %}
+                <li><strong>Fecha del movimiento:</strong> {{ datos_contexto.fecha_movimiento|date:"d/m/Y H:i" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px;">
+            <h3>✅ Acciones Recomendadas:</h3>
+            <ul>
+                <li>Verificar que el bien haya llegado a su destino</li>
+                <li>Confirmar la recepción en el sistema si es necesario</li>
+                <li>Actualizar los registros de responsabilidad</li>
+                <li>Revisar que toda la documentación esté completa</li>
+            </ul>
+        </div>
+        
+        {% if notificacion.url_accion %}
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ base_url }}{{ notificacion.url_accion }}" class="btn">Ver Detalles del Bien</a>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+            <h4>📝 Nota Importante:</h4>
+            <p>Este movimiento ha sido registrado en el sistema. Si usted es el responsable de la oficina de destino, asegúrese de confirmar la recepción del bien. Si hay algún problema con la transferencia, contacte al administrador del sistema.</p>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px;">
+            <p><strong>📅 Información del Movimiento:</strong></p>
+            <ul>
+                <li><strong>Fecha de notificación:</strong> {{ notificacion.created_at|date:"d/m/Y H:i" }}</li>
+                <li><strong>Prioridad:</strong> {{ notificacion.get_prioridad_display }}</li>
+                {% if notificacion.fecha_expiracion %}
+                <li><strong>Válida hasta:</strong> {{ notificacion.fecha_expiracion|date:"d/m/Y" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Este es un mensaje automático del Sistema de Patrimonio</p>
+        <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+        <p>Para cambiar sus preferencias de notificación, ingrese al sistema y vaya a Configuración > Notificaciones</p>
+    </div>
+</body>
+</html>

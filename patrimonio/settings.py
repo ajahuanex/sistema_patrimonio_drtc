@@ -43,6 +43,7 @@ LOCAL_APPS = [
     'apps.bienes',
     'apps.reportes',
     'apps.mobile',
+    'apps.notificaciones',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -54,6 +55,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.core.middleware.PermissionMiddleware',
+    'apps.core.middleware.AuditMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -164,6 +167,72 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+
+# Configuración de tareas periódicas
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    # Limpiar reportes expirados cada día a las 2:00 AM
+    'limpiar-reportes-expirados': {
+        'task': 'apps.reportes.tasks.limpiar_reportes_expirados',
+        'schedule': crontab(hour=2, minute=0),
+    },
+    # Actualizar estadísticas en caché cada hora
+    'actualizar-estadisticas-cache': {
+        'task': 'apps.reportes.tasks.actualizar_estadisticas_cache',
+        'schedule': crontab(minute=0),  # Cada hora en punto
+    },
+    # Limpiar archivos temporales cada 6 horas
+    'limpiar-archivos-temporales': {
+        'task': 'apps.core.tasks.limpiar_archivos_temporales',
+        'schedule': crontab(minute=0, hour='*/6'),
+    },
+    # Backup de base de datos cada día a las 3:00 AM
+    'backup-base-datos': {
+        'task': 'apps.core.tasks.backup_base_datos',
+        'schedule': crontab(hour=3, minute=0),
+    },
+    # Procesar notificaciones pendientes cada 5 minutos
+    'procesar-notificaciones-pendientes': {
+        'task': 'apps.notificaciones.tasks.procesar_notificaciones_pendientes',
+        'schedule': crontab(minute='*/5'),
+    },
+    # Verificar alertas de mantenimiento cada día a las 8:00 AM
+    'verificar-alertas-mantenimiento': {
+        'task': 'apps.notificaciones.tasks.verificar_alertas_mantenimiento',
+        'schedule': crontab(hour=8, minute=0),
+    },
+    # Verificar alertas de depreciación cada lunes a las 9:00 AM
+    'verificar-alertas-depreciacion': {
+        'task': 'apps.notificaciones.tasks.verificar_alertas_depreciacion',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),
+    },
+    # Limpiar notificaciones expiradas cada día a las 1:00 AM
+    'limpiar-notificaciones-expiradas': {
+        'task': 'apps.notificaciones.tasks.limpiar_notificaciones_expiradas',
+        'schedule': crontab(hour=1, minute=0),
+    },
+    # Reenviar notificaciones fallidas cada 2 horas
+    'reenviar-notificaciones-fallidas': {
+        'task': 'apps.notificaciones.tasks.reenviar_notificaciones_fallidas',
+        'schedule': crontab(minute=0, hour='*/2'),
+    },
+}
+
+# Configuración adicional de Celery
+CELERY_TASK_ROUTES = {
+    'apps.reportes.tasks.generar_reporte_async': {'queue': 'reportes'},
+    'apps.core.tasks.importacion_masiva_excel': {'queue': 'importaciones'},
+    'apps.mobile.tasks.procesar_sincronizacion_async': {'queue': 'mobile'},
+}
+
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+CELERY_TASK_CREATE_MISSING_QUEUES = True
+
+# Configuración de workers
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -172,6 +241,8 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='sistema.patrimonio@drtc-puno.gob.pe')
+EMAIL_SUBJECT_PREFIX = '[Sistema Patrimonio] '
 
 # QR Code Configuration
 BASE_URL = config('BASE_URL', default='http://localhost:8000')

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notificacion.titulo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            font-size: 12px;
+        }
+        .priority-alta {
+            border-left: 5px solid #dc3545;
+        }
+        .priority-critica {
+            border-left: 5px solid #dc3545;
+            background-color: #f8d7da;
+        }
+        .priority-media {
+            border-left: 5px solid #ffc107;
+        }
+        .priority-baja {
+            border-left: 5px solid #28a745;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .data-table th,
+        .data-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Sistema de Patrimonio</h1>
+        <h2>{{ notificacion.titulo }}</h2>
+    </div>
+    
+    <div class="content priority-{{ notificacion.prioridad|lower }}">
+        <p><strong>Estimado/a {{ usuario.get_full_name|default:usuario.username }},</strong></p>
+        
+        <p>{{ notificacion.mensaje }}</p>
+        
+        {% if datos_contexto %}
+            <div style="margin-top: 20px;">
+                <h3>Detalles Adicionales:</h3>
+                
+                {% if datos_contexto.cantidad_bienes %}
+                    <p><strong>Cantidad de bienes:</strong> {{ datos_contexto.cantidad_bienes }}</p>
+                {% endif %}
+                
+                {% if datos_contexto.bien_codigo %}
+                    <p><strong>Código Patrimonial:</strong> {{ datos_contexto.bien_codigo }}</p>
+                {% endif %}
+                
+                {% if datos_contexto.bien_denominacion %}
+                    <p><strong>Denominación:</strong> {{ datos_contexto.bien_denominacion }}</p>
+                {% endif %}
+                
+                {% if datos_contexto.oficina_origen and datos_contexto.oficina_destino %}
+                    <p><strong>Movimiento:</strong> De {{ datos_contexto.oficina_origen }} a {{ datos_contexto.oficina_destino }}</p>
+                {% endif %}
+                
+                {% if datos_contexto.motivo %}
+                    <p><strong>Motivo:</strong> {{ datos_contexto.motivo }}</p>
+                {% endif %}
+                
+                {% if datos_contexto.fecha_movimiento %}
+                    <p><strong>Fecha:</strong> {{ datos_contexto.fecha_movimiento|date:"d/m/Y H:i" }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        {% if notificacion.url_accion %}
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ base_url }}{{ notificacion.url_accion }}" class="btn">Ver Detalles</a>
+            </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px;">
+            <p><strong>Información de la Notificación:</strong></p>
+            <ul>
+                <li><strong>Tipo:</strong> {{ notificacion.tipo_notificacion.nombre }}</li>
+                <li><strong>Prioridad:</strong> {{ notificacion.get_prioridad_display }}</li>
+                <li><strong>Fecha:</strong> {{ notificacion.created_at|date:"d/m/Y H:i" }}</li>
+                {% if notificacion.fecha_expiracion %}
+                    <li><strong>Válida hasta:</strong> {{ notificacion.fecha_expiracion|date:"d/m/Y" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Este es un mensaje automático del Sistema de Patrimonio</p>
+        <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+        <p>Para cambiar sus preferencias de notificación, ingrese al sistema y vaya a Configuración > Notificaciones</p>
+    </div>
+</body>
+</html>

@@ -557,8 +557,7 @@ def limpiar_reportes_expirados(request):
         messages.error(request, 'Error al limpiar reportes expirados')
     
     return redirect('reportes:dashboard_reportes')
-# Vistas a
-dicionales para generación de stickers ZPL
+# Vistas adicionales para generación de stickers ZPL
 
 @login_required
 def configurar_stickers(request):
@@ -938,8 +937,7 @@ def tutorial_stickers_zpl(request):
     }
     
     return render(request, 'reportes/tutorial_stickers.html', context)
-# V
-istas adicionales para exportación en múltiples formatos
+# Vistas adicionales para exportación en múltiples formatos
 
 @login_required
 def centro_exportacion(request):

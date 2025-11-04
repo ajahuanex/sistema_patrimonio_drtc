@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if user_obj %}Editar Usuario{% else %}Nuevo Usuario{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if user_obj %}
+                            Editar Usuario: {{ user_obj.username }}
+                        {% else %}
+                            Nuevo Usuario
+                        {% endif %}
+                    </h3>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Información básica -->
+                            <div class="col-md-6">
+                                <h5>Información Básica</h5>
+                                
+                                {% if not user_obj %}
+                                <div class="form-group">
+                                    <label for="username">Nombre de Usuario *</label>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           value="{{ form_data.username|default:'' }}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="password">Contraseña *</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    <small class="form-text text-muted">Mínimo 8 caracteres</small>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="form-group">
+                                    <label for="first_name">Nombres</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ user_obj.first_name|default:form_data.first_name|default:'' }}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="last_name">Apellidos</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ user_obj.last_name|default:form_data.last_name|default:'' }}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="email">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ user_obj.email|default:form_data.email|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <!-- Información profesional -->
+                            <div class="col-md-6">
+                                <h5>Información Profesional</h5>
+                                
+                                <div class="form-group">
+                                    <label for="role">Rol *</label>
+                                    <select class="form-control" id="role" name="role" required>
+                                        {% for role_code, role_name in roles %}
+                                            <option value="{{ role_code }}" 
+                                                {% if user_obj.profile.role == role_code or form_data.role == role_code %}selected{% endif %}>
+                                                {{ role_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="cargo">Cargo</label>
+                                    <input type="text" class="form-control" id="cargo" name="cargo" 
+                                           value="{% if user_obj %}{{ user_obj.profile.cargo }}{% else %}{{ form_data.cargo|default:'' }}{% endif %}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="telefono">Teléfono</label>
+                                    <input type="text" class="form-control" id="telefono" name="telefono" 
+                                           value="{% if user_obj %}{{ user_obj.profile.telefono }}{% else %}{{ form_data.telefono|default:'' }}{% endif %}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oficina">Oficina</label>
+                                    <select class="form-control" id="oficina" name="oficina">
+                                        <option value="">Seleccionar oficina...</option>
+                                        {% for oficina in oficinas %}
+                                            <option value="{{ oficina.id }}" 
+                                                {% if user_obj.profile.oficina.id == oficina.id or form_data.oficina == oficina.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ oficina.nombre }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Descripción de roles -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5>Descripción de Roles</h5>
+                                <div class="alert alert-info">
+                                    <ul class="mb-0">
+                                        <li><strong>Administrador:</strong> Acceso completo al sistema, gestión de usuarios y configuración</li>
+                                        <li><strong>Funcionario:</strong> Gestión de inventario, importación/exportación de datos</li>
+                                        <li><strong>Auditor:</strong> Acceso de lectura y generación de reportes avanzados</li>
+                                        <li><strong>Consulta:</strong> Solo consulta de información básica</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            {% if user_obj %}Actualizar{% else %}Crear{% endif %} Usuario
+                        </button>
+                        <a href="{% url 'core:user_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user_obj %}
+<!-- Modal para resetear contraseña -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resetear Contraseña</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form method="post" action="{% url 'core:user_reset_password' user_obj.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="new_password">Nueva Contraseña</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <small class="form-text text-muted">Mínimo 8 caracteres</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning">Resetear Contraseña</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar botón para resetear contraseña
+    const cardFooter = document.querySelector('.card-footer');
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'btn btn-warning ml-2';
+    resetButton.setAttribute('data-toggle', 'modal');
+    resetButton.setAttribute('data-target', '#resetPasswordModal');
+    resetButton.innerHTML = '<i class="fas fa-key"></i> Resetear Contraseña';
+    cardFooter.insertBefore(resetButton, cardFooter.children[1]);
+});
+</script>
+{% endif %}
+{% endblock %}

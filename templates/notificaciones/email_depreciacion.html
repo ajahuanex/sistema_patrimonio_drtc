@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notificacion.titulo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #ffc107;
+            color: #212529;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-left: 5px solid #ffc107;
+        }
+        .footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 0 0 5px 5px;
+            font-size: 12px;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #ffc107;
+            color: #212529;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .stats {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📉 ALERTA DE DEPRECIACIÓN</h1>
+        <h2>Sistema de Patrimonio</h2>
+    </div>
+    
+    <div class="content">
+        <p><strong>Estimado/a {{ usuario.get_full_name|default:usuario.username }},</strong></p>
+        
+        <div class="warning-box">
+            <h3>⏰ Planificación Requerida</h3>
+            <p>{{ notificacion.mensaje }}</p>
+        </div>
+        
+        {% if datos_contexto.cantidad_bienes %}
+        <div class="stats">
+            <h3>📊 Resumen de Depreciación</h3>
+            <ul>
+                <li><strong>Cantidad de bienes:</strong> {{ datos_contexto.cantidad_bienes }}</li>
+                <li><strong>Configuración de alerta:</strong> {{ datos_contexto.alerta_nombre }}</li>
+                {% if datos_contexto.vida_util_anos %}
+                <li><strong>Vida útil configurada:</strong> {{ datos_contexto.vida_util_anos }} años</li>
+                {% endif %}
+                {% if datos_contexto.meses_anticipacion %}
+                <li><strong>Anticipación de alerta:</strong> {{ datos_contexto.meses_anticipacion }} meses</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px;">
+            <h3>📋 Acciones Recomendadas:</h3>
+            <ul>
+                <li>Revisar la lista de bienes próximos a depreciarse</li>
+                <li>Evaluar el estado actual de los bienes</li>
+                <li>Considerar la renovación o reemplazo de equipos</li>
+                <li>Planificar el presupuesto para nuevas adquisiciones</li>
+                <li>Actualizar la valorización de los bienes si es necesario</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
+            <h4>💡 Información Importante:</h4>
+            <p>La depreciación de bienes patrimoniales es un proceso contable que refleja la pérdida de valor de los activos con el tiempo. Es importante mantener un control adecuado para:</p>
+            <ul>
+                <li>Cumplir con las normas contables</li>
+                <li>Planificar reemplazos oportunos</li>
+                <li>Optimizar el uso de recursos</li>
+                <li>Mantener la eficiencia operativa</li>
+            </ul>
+        </div>
+        
+        {% if notificacion.url_accion %}
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ base_url }}{{ notificacion.url_accion }}" class="btn">Ver Bienes a Depreciar</a>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px;">
+            <p><strong>📅 Información de la Alerta:</strong></p>
+            <ul>
+                <li><strong>Fecha de alerta:</strong> {{ notificacion.created_at|date:"d/m/Y H:i" }}</li>
+                <li><strong>Prioridad:</strong> {{ notificacion.get_prioridad_display }}</li>
+                {% if notificacion.fecha_expiracion %}
+                <li><strong>Válida hasta:</strong> {{ notificacion.fecha_expiracion|date:"d/m/Y" }}</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Este es un mensaje automático del Sistema de Patrimonio</p>
+        <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+        <p>Para cambiar sus preferencias de notificación, ingrese al sistema y vaya a Configuración > Notificaciones</p>
+    </div>
+</body>
+</html>

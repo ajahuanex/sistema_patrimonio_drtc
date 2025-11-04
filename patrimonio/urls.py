@@ -21,16 +21,22 @@ from django.conf.urls.static import static
 from django.shortcuts import render
 from .views import home_view, ReactAppView
 from apps.bienes.views import QRCodeDetailView
+from .health import health_check, health_detailed
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home_view, name='home'),
+    
+    # Health checks
+    path('health/', health_check, name='health_check'),
+    path('health/detailed/', health_detailed, name='health_detailed'),
     
     # Django views (legacy)
     path('catalogo/', include('apps.catalogo.urls')),
     path('oficinas/', include('apps.oficinas.urls')),
     path('bienes/', include('apps.bienes.urls')),
     path('reportes/', include('apps.reportes.urls')),
+    path('core/', include('apps.core.urls')),
     
     # QR Code public access
     path('qr/<str:qr_code>/', QRCodeDetailView.as_view(), name='qr_public'),

@@ -68,6 +68,19 @@
                             <li><a class="dropdown-item" href="#"><i class="fas fa-chart-pie"></i> Estadísticas</a></li>
                         </ul>
                     </li>
+                    {% if user.is_authenticated and user.profile.is_administrador %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarAdmin" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cogs"></i> Administración
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'core:user_list' %}"><i class="fas fa-users"></i> Gestión de Usuarios</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:audit_logs' %}"><i class="fas fa-history"></i> Registros de Auditoría</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/"><i class="fas fa-tools"></i> Panel de Administración</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

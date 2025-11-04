@@ -236,53 +236,89 @@
     - Desarrollar preview de reportes antes de exportar
     - _Requisitos: 19, 21_
 
-- [ ] 8. Implementar sistema de usuarios y permisos
-  - [ ] 8.1 Configurar roles y permisos Django
+- [x] 8. Implementar sistema de usuarios y permisos
+
+
+
+
+
+
+  - [x] 8.1 Configurar roles y permisos Django
+
     - Definir grupos de usuarios: administrador, funcionario, auditor, consulta
     - Implementar permisos granulares por funcionalidad
     - Crear middleware de autorización
     - _Requisitos: 7_
 
-  - [ ] 8.2 Desarrollar gestión de usuarios
+  - [x] 8.2 Desarrollar gestión de usuarios
+
+
     - Crear interfaz para administración de usuarios
     - Implementar asignación de roles y permisos
     - Desarrollar funcionalidad de activación/desactivación
     - _Requisitos: 7_
 
-- [ ] 9. Implementar tareas asíncronas con Celery
-  - [ ] 9.1 Configurar Celery para procesamiento en background
+- [x] 9. Implementar tareas asíncronas con Celery
+
+
+
+
+
+  - [x] 9.1 Configurar Celery para procesamiento en background
+
+
     - Configurar Celery con Redis como broker
     - Crear tareas para importaciones masivas
     - Implementar tareas para generación de reportes pesados
     - _Requisitos: 9, 10, 21_
 
-  - [ ] 9.2 Desarrollar sistema de notificaciones
+  - [x] 9.2 Desarrollar sistema de notificaciones
+
+
     - Crear tareas para envío de notificaciones por email
     - Implementar alertas de mantenimiento y depreciación
     - Desarrollar notificaciones de movimientos de bienes
     - _Requisitos: 6_
 
-- [ ] 10. Realizar pruebas y optimización
-  - [ ] 10.1 Implementar suite de pruebas unitarias
+- [x] 10. Realizar pruebas y optimización
+
+
+
+
+
+  - [x] 10.1 Implementar suite de pruebas unitarias
+
+
     - Crear pruebas para modelos y validaciones
     - Desarrollar pruebas para APIs REST
     - Implementar pruebas de importación/exportación
     - _Requisitos: Todos los requisitos funcionales_
 
-  - [ ] 10.2 Realizar pruebas de integración y rendimiento
+  - [x] 10.2 Realizar pruebas de integración y rendimiento
+
+
     - Probar flujos completos de usuario
     - Realizar pruebas de carga para reportes
     - Optimizar consultas de base de datos
     - _Requisitos: Rendimiento del sistema_
 
-- [ ] 11. Configurar despliegue en producción
-  - [ ] 11.1 Preparar configuración de producción
+- [x] 11. Configurar despliegue en producción
+
+
+
+
+
+  - [x] 11.1 Preparar configuración de producción
+
+
     - Configurar variables de entorno para producción
     - Establecer configuración SSL con Let's Encrypt
     - Configurar backup automático de base de datos
     - _Requisitos: Despliegue seguro_
 
-  - [ ] 11.2 Documentar instalación y mantenimiento
+  - [x] 11.2 Documentar instalación y mantenimiento
+
+
     - Crear documentación de instalación con Docker
     - Documentar procedimientos de backup y restauración
     - Crear guía de usuario para administradores
