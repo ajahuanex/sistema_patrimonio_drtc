@@ -158,18 +158,24 @@ class AuditMiddleware(MiddlewareMixin):
         model_name = self._extract_model_name(request.path)
         object_id = self._extract_object_id(request.path)
         
-        # Obtener cambios del request si es JSON
+        # Obtener cambios del request
         changes = None
-        if hasattr(request, 'body') and request.content_type == 'application/json':
-            try:
-                changes = json.loads(request.body.decode('utf-8'))
-                # Remover campos sensibles
-                if isinstance(changes, dict):
-                    changes.pop('password', None)
-                    changes.pop('password1', None)
-                    changes.pop('password2', None)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                changes = None
+        try:
+            if request.content_type == 'application/json' and hasattr(request, '_body'):
+                # Solo para requests JSON que no han sido procesados
+                changes = json.loads(request._body.decode('utf-8'))
+            elif hasattr(request, 'POST') and request.POST:
+                # Para formularios HTML, usar request.POST
+                changes = dict(request.POST.items())
+            
+            # Remover campos sensibles
+            if isinstance(changes, dict):
+                changes.pop('password', None)
+                changes.pop('password1', None)
+                changes.pop('password2', None)
+                changes.pop('csrfmiddlewaretoken', None)
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            changes = None
 
         # Crear registro de auditoría
         try:

@@ -167,7 +167,8 @@ class BienPatrimonial(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.codigo_patrimonial} - {self.catalogo.denominacion}"
+        base_str = f"{self.codigo_patrimonial} - {self.catalogo.denominacion}"
+        return self.get_str_with_delete_status(base_str)
     
     def clean(self):
         """Validaciones personalizadas"""
@@ -368,7 +369,8 @@ class MovimientoBien(BaseModel):
         ordering = ['-fecha_movimiento']
     
     def __str__(self):
-        return f"{self.bien.codigo_patrimonial}: {self.oficina_origen} → {self.oficina_destino}"
+        base_str = f"{self.bien.codigo_patrimonial}: {self.oficina_origen} → {self.oficina_destino}"
+        return self.get_str_with_delete_status(base_str)
     
     def confirmar_movimiento(self):
         """Confirma el movimiento y actualiza la oficina del bien"""
@@ -430,4 +432,5 @@ class HistorialEstado(BaseModel):
         ordering = ['-fecha_cambio']
     
     def __str__(self):
-        return f"{self.bien.codigo_patrimonial}: {self.get_estado_anterior_display()} → {self.get_estado_nuevo_display()}"
+        base_str = f"{self.bien.codigo_patrimonial}: {self.get_estado_anterior_display()} → {self.get_estado_nuevo_display()}"
+        return self.get_str_with_delete_status(base_str)

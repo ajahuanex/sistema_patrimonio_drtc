@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preview PDF - {{ bien.codigo_patrimonial }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @page {
+            size: {{ dimensiones.ancho }} {{ dimensiones.alto }};
+            margin: 2mm;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 10px;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .preview-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .etiqueta {
+            width: {{ dimensiones.ancho }};
+            height: {{ dimensiones.alto }};
+            border: 3px solid #000;
+            padding: 5mm;
+            box-sizing: border-box;
+            display: flex;
+            position: relative;
+            background: white;
+            margin: 0 auto 20px auto;
+        }
+        
+        .qr-container {
+            width: {{ dimensiones.qr_size }};
+            height: {{ dimensiones.qr_size }};
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5mm;
+            background: repeating-linear-gradient(
+                45deg,
+                #000,
+                #000 2px,
+                #fff 2px,
+                #fff 4px
+            );
+            color: white;
+            font-weight: bold;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+        
+        .info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 2mm;
+        }
+        
+        .codigo {
+            font-size: {{ font_sizes.codigo }};
+            font-weight: bold;
+            margin-bottom: 3mm;
+            line-height: 1.1;
+        }
+        
+        .denominacion {
+            font-size: {{ font_sizes.denominacion }};
+            margin-bottom: 2mm;
+            line-height: 1.2;
+        }
+        
+        .detalle {
+            font-size: {{ font_sizes.detalle }};
+            margin-bottom: 1.5mm;
+            color: #333;
+            line-height: 1.1;
+        }
+        
+        .fecha {
+            position: absolute;
+            bottom: 2mm;
+            right: 3mm;
+            font-size: 7px;
+            color: #666;
+        }
+        
+        .impresora-info {
+            position: absolute;
+            top: 2mm;
+            right: 3mm;
+            font-size: 6px;
+            color: #999;
+        }
+        
+        .acciones {
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .info-text {
+            margin-top: 15px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                display: block;
+            }
+            
+            .preview-container {
+                box-shadow: none;
+                padding: 0;
+                background: transparent;
+            }
+            
+            .acciones, .info-text {
+                display: none;
+            }
+            
+            .etiqueta {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h3>Vista Previa PDF - {{ impresora }}</h3>
+        
+        <div class="etiqueta">
+            <div class="impresora-info">{{ impresora }} {{ dpi }}DPI</div>
+            
+            <div class="qr-container">
+                QR
+            </div>
+            
+            <div class="info-container">
+                <div class="codigo">{{ bien.codigo_patrimonial }}</div>
+                <div class="denominacion">{{ bien.catalogo.denominacion|truncatechars:40 }}</div>
+                <div class="detalle">Oficina: {{ bien.oficina.nombre|truncatechars:25 }}</div>
+                <div class="detalle">Estado: {{ bien.get_estado_bien_display }}</div>
+                {% if bien.marca or bien.modelo %}
+                    <div class="detalle">{{ bien.marca|default:"" }} {{ bien.modelo|default:"" }}</div>
+                {% endif %}
+                {% if bien.serie %}
+                    <div class="detalle">Serie: {{ bien.serie }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="fecha">{{ fecha_actual }}</div>
+        </div>
+        
+        <div class="acciones">
+            <button class="btn btn-success" onclick="window.print()">
+                🖨️ Imprimir como PDF
+            </button>
+            <button class="btn" onclick="window.close()">
+                ❌ Cerrar
+            </button>
+        </div>
+        
+        <div class="info-text">
+            <p><strong>Instrucciones:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Haz clic en "Imprimir como PDF" para guardar</li>
+                <li>En la ventana de impresión, selecciona "Guardar como PDF"</li>
+                <li>El tamaño está optimizado para {{ tamaño }}</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

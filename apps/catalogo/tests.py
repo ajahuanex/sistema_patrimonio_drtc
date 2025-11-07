@@ -30,7 +30,7 @@ class CatalogoModelTest(TestCase):
         Catalogo.objects.create(**self.catalogo_data)
         
         # Intentar crear otro con el mismo código
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             Catalogo.objects.create(**self.catalogo_data)
     
     def test_denominacion_unica(self):
@@ -41,7 +41,7 @@ class CatalogoModelTest(TestCase):
         data_duplicada = self.catalogo_data.copy()
         data_duplicada['codigo'] = '04220002'
         
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             Catalogo.objects.create(**data_duplicada)
     
     def test_validacion_codigo_formato(self):

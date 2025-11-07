@@ -34,9 +34,11 @@
                             <i class="fas fa-box"></i> Bienes
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-list"></i> Lista de Bienes</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-plus"></i> Registrar Bien</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-upload"></i> Importar Excel</a></li>
+                            <li><a class="dropdown-item" href="{% url 'bienes:list' %}"><i class="fas fa-list"></i> Lista de Bienes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'bienes:create' %}"><i class="fas fa-plus"></i> Registrar Bien</a></li>
+                            <li><a class="dropdown-item" href="{% url 'bienes:importar' %}"><i class="fas fa-upload"></i> Importar Excel</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'bienes:mobile_scanner' %}"><i class="fas fa-mobile-alt"></i> Escáner Móvil</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -54,8 +56,8 @@
                             <i class="fas fa-building"></i> Oficinas
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-list"></i> Lista de Oficinas</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-upload"></i> Importar Oficinas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'oficinas:lista' %}"><i class="fas fa-list"></i> Lista de Oficinas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'oficinas:importar' %}"><i class="fas fa-upload"></i> Importar Oficinas</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -63,9 +65,12 @@
                             <i class="fas fa-chart-line"></i> Reportes
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-filter"></i> Reportes Avanzados</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-qrcode"></i> Generar Stickers QR</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-chart-pie"></i> Estadísticas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'reportes:dashboard_reportes' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'reportes:filtros_avanzados' %}"><i class="fas fa-filter"></i> Reportes Avanzados</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'reportes:menu_impresion_qr' %}"><i class="fas fa-qrcode"></i> Imprimir QR</a></li>
+                            <li><a class="dropdown-item" href="{% url 'reportes:configurador_zebra' %}"><i class="fas fa-print"></i> Impresoras Zebra</a></li>
+                            <li><a class="dropdown-item" href="{% url 'reportes:configurar_stickers' %}"><i class="fas fa-tags"></i> Stickers ZPL</a></li>
                         </ul>
                     </li>
                     {% if user.is_authenticated and user.profile.is_administrador %}

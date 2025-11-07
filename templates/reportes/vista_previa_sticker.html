@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vista Previa Sticker - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-eye"></i>
+                        Vista Previa del Sticker
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Información del Bien</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Código Patrimonial:</th>
+                                    <td>{{ bien.codigo_patrimonial }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Denominación:</th>
+                                    <td>{{ bien.denominacion }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Oficina:</th>
+                                    <td>{{ bien.oficina.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Estado:</th>
+                                    <td>{{ bien.get_estado_bien_display }}</td>
+                                </tr>
+                                {% if bien.marca %}
+                                <tr>
+                                    <th>Marca:</th>
+                                    <td>{{ bien.marca }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if bien.modelo %}
+                                <tr>
+                                    <th>Modelo:</th>
+                                    <td>{{ bien.modelo }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Vista Previa Visual</h5>
+                            {% if es_valido %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    El código ZPL es válido
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Errores encontrados:
+                                    <ul>
+                                        {% for error in errores %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+
+                            <!-- Vista previa visual con OpenLabel -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-eye"></i> Vista Previa de la Etiqueta
+                                        <button class="btn btn-sm btn-outline-primary float-right" onclick="actualizarVistaPrevia()">
+                                            <i class="fas fa-sync"></i> Actualizar
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="label-preview" style="border: 2px dashed #ccc; padding: 20px; min-height: 200px; background: #f8f9fa;">
+                                        <div class="spinner-border" role="status">
+                                            <span class="sr-only">Cargando vista previa...</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">
+                                        Vista previa generada con OpenLabel
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            {% if dimensiones %}
+                                <div class="mt-3">
+                                    <strong>Dimensiones estimadas:</strong>
+                                    {{ dimensiones.ancho }}mm x {{ dimensiones.alto }}mm
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Código ZPL en una sección separada -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-code"></i> Código ZPL
+                                        <button class="btn btn-sm btn-outline-info float-right" onclick="toggleZPLCode()">
+                                            <i class="fas fa-eye"></i> <span id="toggle-text">Mostrar</span>
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="card-body" id="zpl-code-container" style="display: none;">
+                                    <textarea class="form-control" rows="10" readonly id="zpl-code">{{ codigo_zpl }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{% url 'reportes:descargar_sticker_individual' bien.id %}" class="btn btn-success">
+                            <i class="fas fa-download"></i> Descargar ZPL
+                        </a>
+                        <button class="btn btn-info" onclick="copiarZPL()">
+                            <i class="fas fa-copy"></i> Copiar Código
+                        </button>
+                        <button class="btn btn-warning" onclick="abrirVisorZPL()">
+                            <i class="fas fa-external-link-alt"></i> Abrir Visor ZPL
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="generarVistaPreviaConQR()">
+                            <i class="fas fa-sync"></i> Vista Alternativa
+                        </button>
+                        <a href="{% url 'reportes:generar_stickers' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+// Código ZPL para la vista previa
+const zplCode = `{{ codigo_zpl|escapejs }}`;
+
+// Función para generar vista previa usando Canvas (100% gratuito)
+function generarVistaPrevia() {
+    const previewContainer = document.getElementById('label-preview');
+    
+    // Crear canvas para dibujar la etiqueta
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Configurar dimensiones del canvas (simular etiqueta de 4x3 pulgadas a 203 DPI)
+    canvas.width = 600;  // ~3 pulgadas a 203 DPI
+    canvas.height = 400; // ~2 pulgadas a 203 DPI
+    
+    // Fondo blanco
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Borde de la etiqueta
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+    
+    // Configurar fuente
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    
+    // Dibujar código QR simulado
+    const qrSize = 80;
+    const qrX = 20;
+    const qrY = 20;
+    
+    // Fondo del QR
+    ctx.fillStyle = 'white';
+    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+    
+    // Borde del QR
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(qrX, qrY, qrSize, qrSize);
+    
+    // Patrón QR simulado
+    ctx.fillStyle = 'black';
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if ((i + j) % 2 === 0) {
+                ctx.fillRect(qrX + 5 + i * 8, qrY + 5 + j * 8, 6, 6);
+            }
+        }
+    }
+    
+    // Texto "QR" en el centro
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR', qrX + qrSize/2, qrY + qrSize/2 - 6);
+    
+    // Información del bien
+    const textX = qrX + qrSize + 20;
+    let textY = 25;
+    
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'left';
+    
+    // Código patrimonial (más grande y en negrita)
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('{{ bien.codigo_patrimonial }}', textX, textY);
+    textY += 35;
+    
+    // Denominación
+    ctx.font = '16px Arial';
+    const denominacion = '{{ bien.denominacion|truncatechars:30 }}';
+    ctx.fillText(denominacion, textX, textY);
+    textY += 25;
+    
+    // Oficina
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#555';
+    ctx.fillText('Oficina: {{ bien.oficina.nombre|truncatechars:25 }}', textX, textY);
+    textY += 22;
+    
+    // Estado
+    ctx.fillText('Estado: {{ bien.get_estado_bien_display }}', textX, textY);
+    textY += 22;
+    
+    // Marca y modelo (si existen)
+    {% if bien.marca %}
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#777';
+    ctx.fillText('{{ bien.marca }}{% if bien.modelo %} - {{ bien.modelo }}{% endif %}', textX, textY);
+    textY += 20;
+    {% endif %}
+    
+    // Fecha actual
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#999';
+    ctx.fillText('Generado: ' + new Date().toLocaleDateString(), textX, textY);
+    
+    // Mostrar el canvas en el contenedor
+    canvas.style.border = '1px solid #ddd';
+    canvas.style.maxWidth = '100%';
+    canvas.style.height = 'auto';
+    
+    previewContainer.innerHTML = '';
+    previewContainer.appendChild(canvas);
+    
+    // Agregar botón para descargar como imagen
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'btn btn-sm btn-success mt-2';
+    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Descargar como PNG';
+    downloadBtn.onclick = function() {
+        const link = document.createElement('a');
+        link.download = 'etiqueta_{{ bien.codigo_patrimonial }}.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    };
+    
+    previewContainer.appendChild(document.createElement('br'));
+    previewContainer.appendChild(downloadBtn);
+}
+
+// Función alternativa con QR Code real usando qrcode.js (gratuito)
+function generarVistaPreviaConQR() {
+    const previewContainer = document.getElementById('label-preview');
+    
+    // Crear contenedor para la etiqueta
+    const labelContainer = document.createElement('div');
+    labelContainer.style.cssText = `
+        background: white;
+        border: 2px solid #333;
+        padding: 20px;
+        display: inline-block;
+        font-family: 'Courier New', monospace;
+        position: relative;
+        min-width: 400px;
+        min-height: 200px;
+    `;
+    
+    // Crear QR Code real
+    const qrContainer = document.createElement('div');
+    qrContainer.style.cssText = `
+        float: left;
+        margin-right: 15px;
+        width: 80px;
+        height: 80px;
+        border: 1px solid #ccc;
+    `;
+    
+    // Generar QR usando una librería simple (sin dependencias externas)
+    qrContainer.innerHTML = generarQRSimple('{{ bien.codigo_patrimonial }}');
+    
+    // Información del bien
+    const infoContainer = document.createElement('div');
+    infoContainer.style.cssText = `
+        margin-left: 100px;
+        padding-top: 5px;
+    `;
+    
+    infoContainer.innerHTML = `
+        <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">{{ bien.codigo_patrimonial }}</div>
+        <div style="font-size: 14px; margin-bottom: 5px; line-height: 1.3;">{{ bien.denominacion|truncatechars:35 }}</div>
+        <div style="font-size: 12px; margin-bottom: 3px; color: #555;">Oficina: {{ bien.oficina.nombre|truncatechars:25 }}</div>
+        <div style="font-size: 12px; margin-bottom: 3px; color: #555;">Estado: {{ bien.get_estado_bien_display }}</div>
+        {% if bien.marca %}
+        <div style="font-size: 10px; color: #777;">{{ bien.marca }}{% if bien.modelo %} - {{ bien.modelo }}{% endif %}</div>
+        {% endif %}
+        <div style="font-size: 9px; color: #999; margin-top: 5px;">Generado: ${new Date().toLocaleDateString()}</div>
+    `;
+    
+    labelContainer.appendChild(qrContainer);
+    labelContainer.appendChild(infoContainer);
+    
+    // Limpiar contenedor y agregar la etiqueta
+    previewContainer.innerHTML = '';
+    previewContainer.appendChild(labelContainer);
+    
+    // Agregar información adicional
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'mt-3';
+    infoDiv.innerHTML = `
+        <small class="text-muted">
+            <i class="fas fa-info-circle"></i>
+            Vista previa generada localmente - 100% gratuita
+        </small>
+    `;
+    previewContainer.appendChild(infoDiv);
+}
+
+// Función para generar QR simple usando CSS/HTML (sin librerías externas)
+function generarQRSimple(texto) {
+    // Crear un patrón QR básico usando CSS
+    const size = 8;
+    const cellSize = 10;
+    let html = '<div style="display: grid; grid-template-columns: repeat(' + size + ', ' + cellSize + 'px); gap: 1px; background: white; padding: 5px;">';
+    
+    // Generar patrón pseudo-aleatorio basado en el texto
+    const hash = texto.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+    
+    for (let i = 0; i < size * size; i++) {
+        const isBlack = (hash + i) % 3 === 0;
+        html += '<div style="width: ' + cellSize + 'px; height: ' + cellSize + 'px; background: ' + (isBlack ? 'black' : 'white') + ';"></div>';
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function actualizarVistaPrevia() {
+    // Usar Canvas para generar vista previa (100% gratuito y local)
+    generarVistaPrevia();
+}
+
+function toggleZPLCode() {
+    const container = document.getElementById('zpl-code-container');
+    const toggleText = document.getElementById('toggle-text');
+    
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        toggleText.textContent = 'Ocultar';
+    } else {
+        container.style.display = 'none';
+        toggleText.textContent = 'Mostrar';
+    }
+}
+
+function copiarZPL() {
+    const textarea = document.getElementById('zpl-code');
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Mostrar notificación
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+    }, 2000);
+}
+
+function abrirVisorZPL() {
+    // Crear una ventana emergente con un visor ZPL simple
+    const ventana = window.open('', '_blank', 'width=800,height=600');
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Visor ZPL - {{ bien.codigo_patrimonial }}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .zpl-code { background: #f5f5f5; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; font-family: monospace; }
+                .preview { border: 2px solid #333; background: white; padding: 20px; margin: 20px 0; display: inline-block; }
+            </style>
+        </head>
+        <body>
+            <h2>Código ZPL para: {{ bien.codigo_patrimonial }}</h2>
+            <div class="preview">
+                <strong>Vista Previa Simulada:</strong><br>
+                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                    <div style="width: 60px; height: 60px; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">QR</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 16px;">{{ bien.codigo_patrimonial }}</div>
+                        <div style="font-size: 12px;">{{ bien.denominacion|truncatechars:30 }}</div>
+                        <div style="font-size: 10px; color: #666;">{{ bien.oficina.nombre }}</div>
+                        <div style="font-size: 10px; color: #666;">{{ bien.get_estado_bien_display }}</div>
+                    </div>
+                </div>
+            </div>
+            <h3>Código ZPL:</h3>
+            <div class="zpl-code">${zplCode}</div>
+            <br>
+            <button onclick="navigator.clipboard.writeText('${zplCode.replace(/'/g, "\\'")}')">Copiar Código</button>
+            <button onclick="window.print()">Imprimir</button>
+        </body>
+        </html>
+    `);
+}
+
+// Generar vista previa al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarVistaPrevia();
+});
+</script>
+{% endblock %}

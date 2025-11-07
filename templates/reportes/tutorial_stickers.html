@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tutorial Stickers ZPL - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-graduation-cap"></i>
+                        Tutorial de Stickers ZPL
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Aprende a usar el sistema de generación de stickers ZPL para impresoras Zebra.
+                    </div>
+
+                    <h4>¿Qué son los stickers ZPL?</h4>
+                    <p>ZPL (Zebra Programming Language) es un lenguaje de programación utilizado por las impresoras Zebra para generar etiquetas y stickers de alta calidad.</p>
+
+                    <h4>Pasos para generar stickers:</h4>
+                    <ol>
+                        <li><strong>Configurar plantilla:</strong> Define el tamaño, campos y posición del código QR</li>
+                        <li><strong>Seleccionar bienes:</strong> Elige los bienes patrimoniales para generar stickers</li>
+                        <li><strong>Generar archivo ZPL:</strong> El sistema crea un archivo compatible con impresoras Zebra</li>
+                        <li><strong>Imprimir:</strong> Envía el archivo a tu impresora Zebra</li>
+                    </ol>
+
+                    <h4>Impresoras compatibles:</h4>
+                    <ul>
+                        <li>Zebra ZD220</li>
+                        <li>Zebra ZD410</li>
+                        <li>Zebra ZD411</li>
+                        <li>Otras impresoras compatibles con ZPL</li>
+                    </ul>
+
+                    <div class="mt-3">
+                        <a href="{% url 'reportes:configurar_stickers' %}" class="btn btn-primary">
+                            <i class="fas fa-cog"></i> Comenzar Configuración
+                        </a>
+                        <a href="{% url 'reportes:plantillas_stickers' %}" class="btn btn-success">
+                            <i class="fas fa-templates"></i> Ver Plantillas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

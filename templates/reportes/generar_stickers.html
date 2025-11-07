@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generar Stickers - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tags"></i>
+                        Generar Stickers ZPL
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Seleccione los bienes para los cuales desea generar stickers.
+                            Total de bienes disponibles: {{ total_bienes }}
+                        </div>
+
+                        {% if bienes %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>
+                                                <input type="checkbox" id="select-all">
+                                            </th>
+                                            <th>Código</th>
+                                            <th>Denominación</th>
+                                            <th>Oficina</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for bien in bienes %}
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" name="bienes_seleccionados" value="{{ bien.id }}" class="bien-checkbox">
+                                            </td>
+                                            <td>{{ bien.codigo_patrimonial }}</td>
+                                            <td>{{ bien.denominacion }}</td>
+                                            <td>{{ bien.oficina.nombre }}</td>
+                                            <td>{{ bien.get_estado_bien_display }}</td>
+                                            <td>
+                                                <a href="{% url 'reportes:vista_previa_sticker' bien.id %}" class="btn btn-sm btn-info" target="_blank">
+                                                    <i class="fas fa-eye"></i> Vista Previa
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Paginación -->
+                            {% if bienes.has_other_pages %}
+                                <nav aria-label="Paginación de bienes">
+                                    <ul class="pagination justify-content-center">
+                                        {% if bienes.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ bienes.previous_page_number }}">Anterior</a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        {% for num in bienes.paginator.page_range %}
+                                            {% if bienes.number == num %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if bienes.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ bienes.next_page_number }}">Siguiente</a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            {% endif %}
+
+                            <div class="form-group mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-tags"></i> Generar Stickers Seleccionados
+                                </button>
+                                <a href="{% url 'reportes:configurar_stickers' %}" class="btn btn-secondary">
+                                    <i class="fas fa-cog"></i> Configurar Plantilla
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No hay bienes disponibles para generar stickers.
+                            </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.bien-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lista de Oficinas - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-building"></i>
+                    Lista de Oficinas
+                </h1>
+                <div>
+                    <a href="{% url 'oficinas:importar' %}" class="btn btn-success">
+                        <i class="fas fa-file-import"></i> Importar Oficinas
+                    </a>
+                    <a href="{% url 'oficinas:reportes' %}" class="btn btn-warning">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                    <button class="btn btn-info" onclick="exportarOficinas()">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaOficina">
+                        <i class="fas fa-plus"></i> Nueva Oficina
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Buscar:</label>
+                                <input type="text" name="q" class="form-control" 
+                                       value="{{ request.GET.q }}" 
+                                       placeholder="Código, nombre o descripción...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Estado:</label>
+                                <select name="estado" class="form-control">
+                                    <option value="">Todos</option>
+                                    <option value="True" {% if request.GET.estado == 'True' %}selected{% endif %}>Activo</option>
+                                    <option value="False" {% if request.GET.estado == 'False' %}selected{% endif %}>Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Responsable:</label>
+                                <input type="text" name="responsable" class="form-control" 
+                                       value="{{ request.GET.responsable }}" 
+                                       placeholder="Buscar por responsable...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <div>
+                                    <button type="submit" class="btn btn-primary btn-block">
+                                        <i class="fas fa-search"></i> Buscar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de oficinas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        Oficinas Registradas
+                        {% if page_obj %}
+                            <span class="badge badge-primary ml-2">{{ page_obj.paginator.count }} oficinas</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if page_obj %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Responsable</th>
+                                        <th>Descripción</th>
+                                        <th>Estado</th>
+                                        <th>Bienes</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for oficina in page_obj %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ oficina.codigo }}</strong>
+                                        </td>
+                                        <td>{{ oficina.nombre }}</td>
+                                        <td>{{ oficina.responsable }}</td>
+                                        <td>
+                                            {% if oficina.descripcion %}
+                                                {{ oficina.descripcion|truncatechars:50 }}
+                                            {% else %}
+                                                <em class="text-muted">Sin descripción</em>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if oficina.estado %}
+                                                <span class="badge badge-success">Activo</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">Inactivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-primary">
+                                                {{ oficina.bienes_count|default:0 }} bienes
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="#" class="btn btn-sm btn-info" 
+                                                   title="Ver detalles" 
+                                                   onclick="verDetalleOficina({{ oficina.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="#" class="btn btn-sm btn-warning" 
+                                                   title="Editar" 
+                                                   onclick="editarOficina({{ oficina.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                {% if oficina.bienes_count == 0 %}
+                                                <a href="#" class="btn btn-sm btn-danger" 
+                                                   title="Eliminar" 
+                                                   onclick="eliminarOficina({{ oficina.id }}, '{{ oficina.nombre }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        {% if is_paginated %}
+                            <nav aria-label="Paginación de oficinas">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.responsable %}&responsable={{ request.GET.responsable }}{% endif %}">
+                                                Anterior
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.responsable %}&responsable={{ request.GET.responsable }}{% endif %}">
+                                                    {{ num }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.responsable %}&responsable={{ request.GET.responsable }}{% endif %}">
+                                                Siguiente
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No se encontraron oficinas</h5>
+                            <p class="text-muted">
+                                {% if request.GET.q or request.GET.estado or request.GET.responsable %}
+                                    No hay oficinas que coincidan con los filtros aplicados.
+                                {% else %}
+                                    Aún no hay oficinas registradas en el sistema.
+                                {% endif %}
+                            </p>
+                            <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaOficina">
+                                <i class="fas fa-plus"></i> Agregar Primera Oficina
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Oficina -->
+<div class="modal fade" id="modalNuevaOficina" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Oficina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertContainer"></div>
+                <form id="formNuevaOficina">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Código: <span class="text-danger">*</span></label>
+                                <input type="text" name="codigo" class="form-control" required maxlength="20" 
+                                       placeholder="Ej: ADM-001">
+                                <small class="form-text text-muted">Máximo 20 caracteres</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Nombre: <span class="text-danger">*</span></label>
+                                <input type="text" name="nombre" class="form-control" required maxlength="200" 
+                                       placeholder="Ej: Administración General">
+                                <small class="form-text text-muted">Máximo 200 caracteres</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Responsable: <span class="text-danger">*</span></label>
+                                <input type="text" name="responsable" class="form-control" required maxlength="200" 
+                                       placeholder="Nombre del responsable">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Cargo del Responsable:</label>
+                                <input type="text" name="cargo_responsable" class="form-control" maxlength="200" 
+                                       placeholder="Ej: Jefe de Oficina">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Teléfono:</label>
+                                <input type="text" name="telefono" class="form-control" maxlength="20" 
+                                       placeholder="Ej: 051-123456">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Email:</label>
+                                <input type="email" name="email" class="form-control" maxlength="254" 
+                                       placeholder="oficina@drtcpuno.gob.pe">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ubicación:</label>
+                        <input type="text" name="ubicacion" class="form-control" maxlength="300" 
+                               placeholder="Ej: Piso 2, Oficina 201">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea name="descripcion" class="form-control" rows="3" 
+                                  placeholder="Descripción de las funciones de la oficina..."></textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="estado" class="form-check-input" id="checkEstado" checked>
+                        <label class="form-check-label" for="checkEstado">Oficina activa</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarOficina" onclick="guardarOficina()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Oficina -->
+<div class="modal fade" id="modalEditarOficina" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Oficina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertContainerEdit"></div>
+                <form id="formEditarOficina">
+                    <input type="hidden" id="editOficinaId" name="oficina_id">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Código: <span class="text-danger">*</span></label>
+                                <input type="text" id="editCodigo" name="codigo" class="form-control" required maxlength="20" 
+                                       placeholder="Ej: ADM-001">
+                                <small class="form-text text-muted">Máximo 20 caracteres</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Nombre: <span class="text-danger">*</span></label>
+                                <input type="text" id="editNombre" name="nombre" class="form-control" required maxlength="200" 
+                                       placeholder="Ej: Administración General">
+                                <small class="form-text text-muted">Máximo 200 caracteres</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Responsable: <span class="text-danger">*</span></label>
+                                <input type="text" id="editResponsable" name="responsable" class="form-control" required maxlength="200" 
+                                       placeholder="Nombre del responsable">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Cargo del Responsable:</label>
+                                <input type="text" id="editCargoResponsable" name="cargo_responsable" class="form-control" maxlength="200" 
+                                       placeholder="Ej: Jefe de Oficina">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Teléfono:</label>
+                                <input type="text" id="editTelefono" name="telefono" class="form-control" maxlength="20" 
+                                       placeholder="Ej: 051-123456">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label>Email:</label>
+                                <input type="email" id="editEmail" name="email" class="form-control" maxlength="254" 
+                                       placeholder="oficina@drtcpuno.gob.pe">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label>Ubicación:</label>
+                        <input type="text" id="editUbicacion" name="ubicacion" class="form-control" maxlength="300" 
+                               placeholder="Ej: Piso 2, Oficina 201">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label>Descripción:</label>
+                        <textarea id="editDescripcion" name="descripcion" class="form-control" rows="3" 
+                                  placeholder="Descripción de las funciones de la oficina..."></textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="editEstado" name="estado" class="form-check-input">
+                        <label class="form-check-label" for="editEstado">Oficina activa</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnActualizarOficina" onclick="actualizarOficina()">
+                    <i class="fas fa-save"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Limpiar formulario cuando se abre el modal
+document.getElementById('modalNuevaOficina').addEventListener('show.bs.modal', function () {
+    limpiarFormulario();
+});
+
+// Limpiar formulario cuando se cierra el modal
+document.getElementById('modalNuevaOficina').addEventListener('hidden.bs.modal', function () {
+    limpiarFormulario();
+});
+
+// Limpiar formulario de edición cuando se cierra el modal
+document.getElementById('modalEditarOficina').addEventListener('hidden.bs.modal', function () {
+    limpiarFormularioEdit();
+});
+
+// Verificar si se debe abrir el modal de edición automáticamente
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    if (editId) {
+        editarOficina(editId);
+        // Limpiar el parámetro de la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+
+function limpiarFormulario() {
+    const form = document.getElementById('formNuevaOficina');
+    form.reset();
+    
+    // Restaurar valores por defecto
+    form.querySelector('input[name="estado"]').checked = true;
+    
+    // Limpiar alertas
+    document.getElementById('alertContainer').innerHTML = '';
+    
+    // Restaurar botón
+    const btnGuardar = document.getElementById('btnGuardarOficina');
+    btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar';
+    btnGuardar.disabled = false;
+}
+
+function limpiarFormularioEdit() {
+    const form = document.getElementById('formEditarOficina');
+    form.reset();
+    
+    // Limpiar alertas
+    document.getElementById('alertContainerEdit').innerHTML = '';
+    
+    // Restaurar botón
+    const btnActualizar = document.getElementById('btnActualizarOficina');
+    btnActualizar.innerHTML = '<i class="fas fa-save"></i> Actualizar';
+    btnActualizar.disabled = false;
+}
+
+function mostrarAlerta(mensaje, tipo = 'danger') {
+    const alertContainer = document.getElementById('alertContainer');
+    alertContainer.innerHTML = `
+        <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
+
+function guardarOficina() {
+    const form = document.getElementById('formNuevaOficina');
+    const formData = new FormData(form);
+    
+    // Limpiar alertas previas
+    document.getElementById('alertContainer').innerHTML = '';
+    
+    // Validar campos requeridos
+    const codigo = form.querySelector('input[name="codigo"]').value.trim();
+    const nombre = form.querySelector('input[name="nombre"]').value.trim();
+    const responsable = form.querySelector('input[name="responsable"]').value.trim();
+    
+    if (!codigo || !nombre || !responsable) {
+        mostrarAlerta('Por favor complete todos los campos requeridos (marcados con *)');
+        return;
+    }
+    
+    // Deshabilitar botón mientras se procesa
+    const btnGuardar = document.getElementById('btnGuardarOficina');
+    const textoOriginal = btnGuardar.innerHTML;
+    btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btnGuardar.disabled = true;
+    
+    // Enviar datos por AJAX
+    fetch('{% url "oficinas:crear" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            mostrarAlerta('Oficina creada exitosamente', 'success');
+            
+            // Cerrar modal después de un breve delay
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaOficina'));
+                modal.hide();
+                // Recargar página para mostrar la nueva oficina
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Mostrar errores
+            let errores = '';
+            for (let campo in data.errors) {
+                const nombreCampo = {
+                    'codigo': 'Código',
+                    'nombre': 'Nombre',
+                    'responsable': 'Responsable',
+                    'cargo_responsable': 'Cargo del Responsable',
+                    'telefono': 'Teléfono',
+                    'email': 'Email',
+                    'ubicacion': 'Ubicación',
+                    'descripcion': 'Descripción',
+                    'general': 'Error'
+                }[campo] || campo;
+                
+                errores += `<strong>${nombreCampo}:</strong> ${data.errors[campo].join(', ')}<br>`;
+            }
+            mostrarAlerta(errores);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarAlerta('Error al guardar la oficina. Por favor intente nuevamente.');
+    })
+    .finally(() => {
+        // Restaurar botón
+        btnGuardar.innerHTML = textoOriginal;
+        btnGuardar.disabled = false;
+    });
+}
+
+function verDetalleOficina(id) {
+    // Redirigir a la página de detalle
+    window.location.href = `{% url 'oficinas:detalle' 0 %}`.replace('0', id);
+}
+
+function editarOficina(id) {
+    // Cargar datos de la oficina
+    fetch(`/oficinas/${id}/obtener/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Llenar el formulario con los datos
+            document.getElementById('editOficinaId').value = data.oficina.id;
+            document.getElementById('editCodigo').value = data.oficina.codigo;
+            document.getElementById('editNombre').value = data.oficina.nombre;
+            document.getElementById('editResponsable').value = data.oficina.responsable;
+            document.getElementById('editCargoResponsable').value = data.oficina.cargo_responsable || '';
+            document.getElementById('editTelefono').value = data.oficina.telefono || '';
+            document.getElementById('editEmail').value = data.oficina.email || '';
+            document.getElementById('editUbicacion').value = data.oficina.ubicacion || '';
+            document.getElementById('editDescripcion').value = data.oficina.descripcion || '';
+            document.getElementById('editEstado').checked = data.oficina.estado;
+            
+            // Limpiar alertas
+            document.getElementById('alertContainerEdit').innerHTML = '';
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarOficina'));
+            modal.show();
+        } else {
+            alert('Error al cargar los datos de la oficina');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cargar los datos de la oficina');
+    });
+}
+
+function actualizarOficina() {
+    const form = document.getElementById('formEditarOficina');
+    const formData = new FormData(form);
+    const oficinaId = document.getElementById('editOficinaId').value;
+    
+    // Limpiar alertas previas
+    document.getElementById('alertContainerEdit').innerHTML = '';
+    
+    // Validar campos requeridos
+    const codigo = document.getElementById('editCodigo').value.trim();
+    const nombre = document.getElementById('editNombre').value.trim();
+    const responsable = document.getElementById('editResponsable').value.trim();
+    
+    if (!codigo || !nombre || !responsable) {
+        mostrarAlertaEdit('Por favor complete todos los campos requeridos (marcados con *)');
+        return;
+    }
+    
+    // Deshabilitar botón mientras se procesa
+    const btnActualizar = document.getElementById('btnActualizarOficina');
+    const textoOriginal = btnActualizar.innerHTML;
+    btnActualizar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+    btnActualizar.disabled = true;
+    
+    // Enviar datos por AJAX
+    fetch(`/oficinas/${oficinaId}/editar/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            mostrarAlertaEdit('Oficina actualizada exitosamente', 'success');
+            
+            // Cerrar modal después de un breve delay
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarOficina'));
+                modal.hide();
+                // Recargar página para mostrar los cambios
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Mostrar errores
+            let errores = '';
+            for (let campo in data.errors) {
+                const nombreCampo = {
+                    'codigo': 'Código',
+                    'nombre': 'Nombre',
+                    'responsable': 'Responsable',
+                    'cargo_responsable': 'Cargo del Responsable',
+                    'telefono': 'Teléfono',
+                    'email': 'Email',
+                    'ubicacion': 'Ubicación',
+                    'descripcion': 'Descripción',
+                    'general': 'Error'
+                }[campo] || campo;
+                
+                errores += `<strong>${nombreCampo}:</strong> ${data.errors[campo].join(', ')}<br>`;
+            }
+            mostrarAlertaEdit(errores);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarAlertaEdit('Error al actualizar la oficina. Por favor intente nuevamente.');
+    })
+    .finally(() => {
+        // Restaurar botón
+        btnActualizar.innerHTML = textoOriginal;
+        btnActualizar.disabled = false;
+    });
+}
+
+function mostrarAlertaEdit(mensaje, tipo = 'danger') {
+    const alertContainer = document.getElementById('alertContainerEdit');
+    alertContainer.innerHTML = `
+        <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+}
+
+function eliminarOficina(id, nombre) {
+    if (confirm('¿Está seguro de que desea eliminar la oficina "' + nombre + '"?\n\nEsta acción no se puede deshacer.')) {
+        // Enviar solicitud de eliminación por AJAX
+        fetch(`/oficinas/${id}/eliminar/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                alert(data.message);
+                // Recargar página para actualizar la lista
+                window.location.reload();
+            } else {
+                // Mostrar errores
+                let errores = '';
+                for (let campo in data.errors) {
+                    errores += data.errors[campo].join(', ') + '\n';
+                }
+                alert('Error al eliminar la oficina:\n' + errores);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar la oficina. Por favor intente nuevamente.');
+        });
+    }
+}
+
+function exportarOficinas() {
+    // Obtener los filtros actuales de la página
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Construir URL de exportación con los mismos filtros
+    let exportUrl = '{% url "oficinas:exportar" %}';
+    if (urlParams.toString()) {
+        exportUrl += '?' + urlParams.toString();
+    }
+    
+    // Mostrar mensaje de descarga
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando Excel...';
+    btn.disabled = true;
+    
+    // Crear enlace temporal para descargar
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Restaurar botón después de un breve delay
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }, 2000);
+}
+</script>
+{% endblock %}

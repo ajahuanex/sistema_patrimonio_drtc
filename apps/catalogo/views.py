@@ -1,15 +1,18 @@
 import os
 import tempfile
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.core.files.storage import default_storage
 from django.conf import settings
+from django.db import models
+from django.core.paginator import Paginator
 from .models import Catalogo
 from .utils import importar_catalogo_desde_excel, validar_estructura_catalogo
+from .forms import CatalogoForm
 
 
 @login_required
@@ -126,7 +129,6 @@ def lista_catalogo_view(request):
         )
     
     # Paginación
-    from django.core.paginator import Paginator
     paginator = Paginator(catalogos, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -135,7 +137,10 @@ def lista_catalogo_view(request):
     grupos = Catalogo.objects.values_list('grupo', flat=True).distinct().order_by('grupo')
     
     context = {
+        'catalogos': page_obj,
         'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator,
         'grupos': grupos,
         'estado_filtro': estado_filtro,
         'grupo_filtro': grupo_filtro,
@@ -199,3 +204,128 @@ def estadisticas_catalogo_view(request):
     }
     
     return render(request, 'catalogo/estadisticas.html', context)
+
+@login_required
+@permission_required('catalogo.add_catalogo', raise_exception=True)
+def agregar_catalogo_view(request):
+    """Vista para agregar un nuevo catálogo"""
+    if request.method == 'POST':
+        form = CatalogoForm(request.POST)
+        if form.is_valid():
+            catalogo = form.save()
+            messages.success(request, f'Catálogo "{catalogo.codigo}" creado exitosamente.')
+            return redirect('catalogo:detalle', pk=catalogo.pk)
+    else:
+        form = CatalogoForm()
+    
+    context = {
+        'form': form,
+        'titulo': 'Agregar Catálogo'
+    }
+    return render(request, 'catalogo/formulario.html', context)
+
+
+@login_required
+def detalle_catalogo_view(request, pk):
+    """Vista para ver detalles de un catálogo"""
+    catalogo = get_object_or_404(Catalogo, pk=pk)
+    
+    # Obtener bienes relacionados si existen
+    bienes_count = 0
+    try:
+        from apps.bienes.models import BienPatrimonial
+        bienes_count = BienPatrimonial.objects.filter(catalogo=catalogo).count()
+    except ImportError:
+        pass
+    
+    context = {
+        'catalogo': catalogo,
+        'bienes_count': bienes_count,
+    }
+    return render(request, 'catalogo/detalle.html', context)
+
+
+@login_required
+@permission_required('catalogo.change_catalogo', raise_exception=True)
+def editar_catalogo_view(request, pk):
+    """Vista para editar un catálogo"""
+    catalogo = get_object_or_404(Catalogo, pk=pk)
+    
+    if request.method == 'POST':
+        form = CatalogoForm(request.POST, instance=catalogo)
+        if form.is_valid():
+            catalogo = form.save()
+            messages.success(request, f'Catálogo "{catalogo.codigo}" actualizado exitosamente.')
+            return redirect('catalogo:detalle', pk=catalogo.pk)
+    else:
+        form = CatalogoForm(instance=catalogo)
+    
+    context = {
+        'form': form,
+        'catalogo': catalogo,
+        'titulo': f'Editar Catálogo {catalogo.codigo}'
+    }
+    return render(request, 'catalogo/formulario.html', context)
+
+
+@login_required
+@permission_required('catalogo.view_catalogo', raise_exception=True)
+def exportar_catalogo_view(request):
+    """Vista para exportar catálogo a Excel"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.utils import timezone
+    
+    # Crear workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Catálogo SBN"
+    
+    # Encabezados
+    headers = ['CÓDIGO', 'DENOMINACIÓN', 'GRUPO', 'CLASE', 'RESOLUCIÓN', 'ESTADO']
+    ws.append(headers)
+    
+    # Estilo para encabezados
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+    
+    # Datos
+    catalogos = Catalogo.objects.all().order_by('codigo')
+    for catalogo in catalogos:
+        ws.append([
+            catalogo.codigo,
+            catalogo.denominacion,
+            catalogo.grupo or '',
+            catalogo.clase or '',
+            catalogo.resolucion or '',
+            catalogo.estado
+        ])
+    
+    # Ajustar ancho de columnas
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Preparar respuesta
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"catalogo_sbn_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response

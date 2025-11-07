@@ -6,6 +6,10 @@ app_name = 'catalogo'
 urlpatterns = [
     path('', views.lista_catalogo_view, name='lista'),
     path('importar/', views.importar_catalogo_view, name='importar'),
+    path('agregar/', views.agregar_catalogo_view, name='agregar'),
+    path('exportar/', views.exportar_catalogo_view, name='exportar'),
+    path('<int:pk>/', views.detalle_catalogo_view, name='detalle'),
+    path('<int:pk>/editar/', views.editar_catalogo_view, name='editar'),
     path('estadisticas/', views.estadisticas_catalogo_view, name='estadisticas'),
     
     # APIs

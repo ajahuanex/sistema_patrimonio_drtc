@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from .views_zebra import (
+    ConfiguradorZebraView, generar_preview_zebra, generar_tickets_masivos_zebra,
+    obtener_configuraciones_impresora, test_impresora_zebra, generar_ticket_individual,
+    menu_impresion_qr, generar_ticket_pdf
+)
 
 app_name = 'reportes'
 
@@ -54,4 +59,16 @@ urlpatterns = [
     
     # Utilidades
     path('limpiar-expirados/', views.limpiar_reportes_expirados, name='limpiar_reportes_expirados'),
+    
+    # Configurador Impresoras Zebra
+    path('zebra/', ConfiguradorZebraView.as_view(), name='configurador_zebra'),
+    path('zebra/preview/', generar_preview_zebra, name='generar_preview_zebra'),
+    path('zebra/masivo/', generar_tickets_masivos_zebra, name='generar_tickets_masivos_zebra'),
+    path('zebra/configuracion/<str:impresora>/', obtener_configuraciones_impresora, name='configuracion_impresora'),
+    path('zebra/test/', test_impresora_zebra, name='test_impresora_zebra'),
+    
+    # Impresión QR
+    path('qr/', menu_impresion_qr, name='menu_impresion_qr'),
+    path('qr/ticket/<int:bien_id>/', generar_ticket_individual, name='generar_ticket_individual'),
+    path('zebra/pdf/', generar_ticket_pdf, name='generar_ticket_pdf'),
 ]

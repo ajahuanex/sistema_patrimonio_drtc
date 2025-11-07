@@ -247,6 +247,11 @@ EMAIL_SUBJECT_PREFIX = '[Sistema Patrimonio] '
 # QR Code Configuration
 BASE_URL = config('BASE_URL', default='http://localhost:8000')
 
+# Login/Logout URLs
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
 # Logging
 LOGGING = {
     'version': 1,

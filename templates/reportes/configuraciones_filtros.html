@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuraciones de Filtros - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-filter"></i>
+                        Configuraciones de Filtros
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'reportes:crear_configuracion_filtro' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Nueva Configuración
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if mis_configuraciones %}
+                        <h5>Mis Configuraciones</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Usos</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in mis_configuraciones %}
+                                    <tr>
+                                        <td>{{ config.nombre }}</td>
+                                        <td>{{ config.descripcion|default:"Sin descripción" }}</td>
+                                        <td>{{ config.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ config.contador_uso }}</td>
+                                        <td>
+                                            <a href="{% url 'reportes:editar_configuracion_filtro' config.pk %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'reportes:eliminar_configuracion_filtro' config.pk %}" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            No tienes configuraciones de filtros guardadas.
+                        </div>
+                    {% endif %}
+
+                    {% if configuraciones_publicas %}
+                        <h5 class="mt-4">Configuraciones Públicas</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Creado por</th>
+                                        <th>Usos</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configuraciones_publicas %}
+                                    <tr>
+                                        <td>{{ config.nombre }}</td>
+                                        <td>{{ config.descripcion|default:"Sin descripción" }}</td>
+                                        <td>{{ config.usuario.get_full_name|default:config.usuario.username }}</td>
+                                        <td>{{ config.contador_uso }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success" onclick="cargarConfiguracion({{ config.pk }})">
+                                                <i class="fas fa-download"></i> Usar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function cargarConfiguracion(configId) {
+    // Redirigir a filtros avanzados con la configuración cargada
+    window.location.href = "{% url 'reportes:filtros_avanzados' %}?cargar=" + configId;
+}
+</script>
+{% endblock %}

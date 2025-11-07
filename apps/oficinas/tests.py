@@ -33,7 +33,7 @@ class OficinaModelTest(TestCase):
         Oficina.objects.create(**self.oficina_data)
         
         # Intentar crear otra con el mismo código
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             Oficina.objects.create(**self.oficina_data)
     
     def test_validacion_codigo_vacio(self):

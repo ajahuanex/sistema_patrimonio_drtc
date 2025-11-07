@@ -18,6 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from .models import BienPatrimonial, HistorialEstado
 from .utils import QRCodeGenerator, QRCodeValidator, importar_bienes_desde_excel, exportar_bienes_a_excel
+from .forms import BienPatrimonialForm, MovimientoBienForm, BuscarBienForm, ImportarBienesForm
 from apps.catalogo.models import Catalogo
 from apps.oficinas.models import Oficina
 
@@ -589,13 +590,9 @@ class BienDetailView(LoginRequiredMixin, DetailView):
 class BienCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """Vista para crear un nuevo bien patrimonial"""
     model = BienPatrimonial
+    form_class = BienPatrimonialForm
     template_name = 'bienes/form.html'
     permission_required = 'bienes.add_bienpatrimonial'
-    fields = [
-        'codigo_patrimonial', 'codigo_interno', 'catalogo', 'oficina',
-        'estado_bien', 'marca', 'modelo', 'color', 'serie', 'dimension',
-        'placa', 'matricula', 'nro_motor', 'nro_chasis', 'observaciones'
-    ]
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -609,13 +606,9 @@ class BienCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 class BienUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """Vista para actualizar un bien patrimonial"""
     model = BienPatrimonial
+    form_class = BienPatrimonialForm
     template_name = 'bienes/form.html'
     permission_required = 'bienes.change_bienpatrimonial'
-    fields = [
-        'codigo_patrimonial', 'codigo_interno', 'catalogo', 'oficina',
-        'estado_bien', 'marca', 'modelo', 'color', 'serie', 'dimension',
-        'placa', 'matricula', 'nro_motor', 'nro_chasis', 'observaciones'
-    ]
     
     def form_valid(self, form):
         messages.success(self.request, 'Bien patrimonial actualizado correctamente.')

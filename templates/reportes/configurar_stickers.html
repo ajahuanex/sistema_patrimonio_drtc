@@ -45,7 +45,7 @@
     .field-checkbox {
         margin-bottom: 8px;
     }
-    .custom-size-inputs {
+    .custom-size-inputs, .custom-qr-size-inputs {
         display: none;
     }
     .btn-preview {
@@ -55,6 +55,15 @@
     }
     .btn-preview:hover {
         background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+        color: white;
+    }
+    .btn-print {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        border: none;
+        color: white;
+    }
+    .btn-print:hover {
+        background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
         color: white;
     }
 </style>
@@ -94,14 +103,11 @@
                     <div class="form-group">
                         <label>Tamaño Predefinido:</label>
                         <select name="tamaño" id="tamañoSelect" class="form-control">
-                            {% for key, info in tamaños_predefinidos.items %}
-                            <option value="{{ key }}" {% if configuracion.tamaño == key %}selected{% endif %}>
-                                {{ info.descripcion }}
-                            </option>
-                            {% endfor %}
-                            <option value="personalizado" {% if configuracion.tamaño == 'personalizado' %}selected{% endif %}>
-                                Personalizado
-                            </option>
+                            <option value="pequeño">Pequeño (50x30mm)</option>
+                            <option value="mediano" selected>Mediano (75x50mm)</option>
+                            <option value="grande">Grande (100x75mm)</option>
+                            <option value="extra_grande">Extra Grande (125x100mm)</option>
+                            <option value="personalizado">Personalizado</option>
                         </select>
                     </div>
                     
@@ -110,77 +116,213 @@
                             <div class="col-6">
                                 <label>Ancho (dots):</label>
                                 <input type="number" name="ancho_personalizado" class="form-control" 
-                                       value="{{ configuracion.ancho|default:400 }}" min="200" max="1200">
+                                       value="400" min="200" max="1200">
                             </div>
                             <div class="col-6">
                                 <label>Alto (dots):</label>
                                 <input type="number" name="alto_personalizado" class="form-control" 
-                                       value="{{ configuracion.alto|default:300 }}" min="150" max="800">
+                                       value="300" min="150" max="800">
                             </div>
                         </div>
                         <small class="form-text text-muted">
                             1 pulgada = 203 dots (para impresoras de 203 DPI)
                         </small>
                     </div>
-                </div>
-
-                <!-- Código QR -->
+                </div> 
+               <!-- Código QR -->
                 <div class="config-section">
                     <h5><i class="fas fa-qrcode"></i> Código QR</h5>
                     
                     <div class="form-check">
-                        <input type="checkbox" name="incluir_qr" id="incluirQR" class="form-check-input" 
-                               {% if configuracion.incluir_qr %}checked{% endif %}>
+                        <input type="checkbox" name="incluir_qr" id="incluirQR" class="form-check-input" checked>
                         <label class="form-check-label" for="incluirQR">
                             Incluir código QR en el sticker
                         </label>
                     </div>
                     
                     <div id="qrOptions" class="mt-3">
-                        <div class="form-group">
-                            <label>Posición del QR:</label>
-                            <select name="posicion_qr" class="form-control">
-                                {% for value, label in posiciones_qr %}
-                                <option value="{{ value }}" {% if configuracion.posicion_qr == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Posición del QR:</label>
+                                <select name="posicion_qr" id="posicionQR" class="form-control">
+                                    <option value="izquierda" selected>Izquierda</option>
+                                    <option value="derecha">Derecha</option>
+                                    <option value="arriba">Arriba</option>
+                                    <option value="abajo">Abajo</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label>Tamaño del QR:</label>
+                                <select name="tamaño_qr" id="tamañoQR" class="form-control">
+                                    <option value="pequeño">Pequeño (20x20)</option>
+                                    <option value="mediano" selected>Mediano (30x30)</option>
+                                    <option value="grande">Grande (40x40)</option>
+                                    <option value="extra_grande">Extra Grande (50x50)</option>
+                                    <option value="personalizado">Personalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="customQRSizeInputs" class="custom-qr-size-inputs mt-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label>Ancho QR (dots):</label>
+                                    <input type="number" name="qr_ancho_personalizado" id="qrAnchoPersonalizado" class="form-control" 
+                                           value="35" min="15" max="80">
+                                </div>
+                                <div class="col-6">
+                                    <label>Alto QR (dots):</label>
+                                    <input type="number" name="qr_alto_personalizado" id="qrAltoPersonalizado" class="form-control" 
+                                           value="35" min="15" max="80">
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                Rango recomendado: 15-80 dots (QR muy pequeños pueden no ser legibles)
+                            </small>
                         </div>
                     </div>
-                </div>
-
-                <!-- Campos a Incluir -->
+                </div>     
+           <!-- Campos a Incluir -->
                 <div class="config-section">
                     <h5><i class="fas fa-list-check"></i> Información a Mostrar</h5>
                     
-                    {% for field_key, field_label in campos_disponibles %}
                     <div class="form-check field-checkbox">
-                        <input type="checkbox" name="campos_incluir" value="{{ field_key }}" 
-                               id="campo_{{ field_key }}" class="form-check-input"
-                               {% if field_key in configuracion.campos_incluir %}checked{% endif %}>
-                        <label class="form-check-label" for="campo_{{ field_key }}">
-                            {{ field_label }}
+                        <input type="checkbox" name="campos_incluir" value="codigo_patrimonial" 
+                               id="campo_codigo_patrimonial" class="form-check-input" checked>
+                        <label class="form-check-label" for="campo_codigo_patrimonial">
+                            Código Patrimonial
                         </label>
                     </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Opciones Adicionales -->
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="denominacion" 
+                               id="campo_denominacion" class="form-check-input" checked>
+                        <label class="form-check-label" for="campo_denominacion">
+                            Denominación
+                        </label>
+                    </div>
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="oficina" 
+                               id="campo_oficina" class="form-check-input" checked>
+                        <label class="form-check-label" for="campo_oficina">
+                            Oficina
+                        </label>
+                    </div>
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="estado" 
+                               id="campo_estado" class="form-check-input" checked>
+                        <label class="form-check-label" for="campo_estado">
+                            Estado
+                        </label>
+                    </div>
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="marca_modelo" 
+                               id="campo_marca_modelo" class="form-check-input">
+                        <label class="form-check-label" for="campo_marca_modelo">
+                            Marca/Modelo
+                        </label>
+                    </div>
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="serie" 
+                               id="campo_serie" class="form-check-input">
+                        <label class="form-check-label" for="campo_serie">
+                            Serie
+                        </label>
+                    </div>
+                    <div class="form-check field-checkbox">
+                        <input type="checkbox" name="campos_incluir" value="placa" 
+                               id="campo_placa" class="form-check-input">
+                        <label class="form-check-label" for="campo_placa">
+                            Placa
+                        </label>
+                    </div>
+                </div>     
+           <!-- Título y Pie de Página -->
+                <div class="config-section">
+                    <h5><i class="fas fa-heading"></i> Título y Pie de Página</h5>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="incluir_titulo" id="incluirTitulo" class="form-check-input">
+                        <label class="form-check-label" for="incluirTitulo">
+                            Incluir título personalizado
+                        </label>
+                    </div>
+                    
+                    <div id="tituloOptions" class="mt-3" style="display: none;">
+                        <div class="form-group">
+                            <label>Texto del título:</label>
+                            <input type="text" name="texto_titulo" id="textoTitulo" class="form-control" 
+                                   value="DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES - PUNO" 
+                                   maxlength="60" placeholder="Ej: DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES - PUNO">
+                            <small class="form-text text-muted">Máximo 60 caracteres</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Posición del título:</label>
+                                <select name="posicion_titulo" id="posicionTitulo" class="form-control">
+                                    <option value="arriba_centro" selected>Arriba Centro</option>
+                                    <option value="arriba_izquierda">Arriba Izquierda</option>
+                                    <option value="arriba_derecha">Arriba Derecha</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label>Tamaño de fuente:</label>
+                                <select name="tamaño_fuente_titulo" id="tamañoFuenteTitulo" class="form-control">
+                                    <option value="pequeña">Pequeña (6px)</option>
+                                    <option value="mediana" selected>Mediana (8px)</option>
+                                    <option value="grande">Grande (10px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mt-3">
+                        <input type="checkbox" name="incluir_pie" id="incluirPie" class="form-check-input">
+                        <label class="form-check-label" for="incluirPie">
+                            Incluir pie de página personalizado
+                        </label>
+                    </div>
+                    
+                    <div id="pieOptions" class="mt-3" style="display: none;">
+                        <div class="form-group">
+                            <label>Texto del pie de página:</label>
+                            <input type="text" name="texto_pie" id="textoPie" class="form-control" 
+                                   value="Sistema de Patrimonio - DRTC Puno" 
+                                   maxlength="50" placeholder="Ej: Sistema de Patrimonio - DRTC Puno">
+                            <small class="form-text text-muted">Máximo 50 caracteres</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Posición del pie:</label>
+                                <select name="posicion_pie" id="posicionPie" class="form-control">
+                                    <option value="abajo_centro" selected>Abajo Centro</option>
+                                    <option value="abajo_izquierda">Abajo Izquierda</option>
+                                    <option value="abajo_derecha">Abajo Derecha</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label>Tamaño de fuente:</label>
+                                <select name="tamaño_fuente_pie" id="tamañoFuentePie" class="form-control">
+                                    <option value="pequeña" selected>Pequeña (5px)</option>
+                                    <option value="mediana">Mediana (6px)</option>
+                                    <option value="grande">Grande (7px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>   
+             <!-- Opciones Adicionales -->
                 <div class="config-section">
                     <h5><i class="fas fa-cogs"></i> Opciones Adicionales</h5>
                     
                     <div class="form-check">
-                        <input type="checkbox" name="incluir_borde" id="incluirBorde" class="form-check-input"
-                               {% if configuracion.incluir_borde %}checked{% endif %}>
+                        <input type="checkbox" name="incluir_borde" id="incluirBorde" class="form-check-input" checked>
                         <label class="form-check-label" for="incluirBorde">
                             Incluir borde en el sticker
                         </label>
                     </div>
                     
                     <div class="form-check">
-                        <input type="checkbox" name="incluir_fecha" id="incluirFecha" class="form-check-input"
-                               {% if configuracion.incluir_fecha %}checked{% endif %}>
+                        <input type="checkbox" name="incluir_fecha" id="incluirFecha" class="form-check-input" checked>
                         <label class="form-check-label" for="incluirFecha">
                             Incluir fecha de generación
                         </label>
@@ -192,10 +334,13 @@
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-save"></i> Guardar Configuración
                     </button>
-                    <button type="button" class="btn btn-preview btn-lg ml-2" onclick="mostrarVistaPrevia()">
+                    <button type="button" class="btn btn-preview btn-lg ml-2" id="btnVistaPrevia">
                         <i class="fas fa-eye"></i> Vista Previa
                     </button>
-                    <button type="button" class="btn btn-secondary btn-lg ml-2" onclick="resetearConfiguracion()">
+                    <button type="button" class="btn btn-print btn-lg ml-2" id="btnImprimir">
+                        <i class="fas fa-print"></i> Imprimir Vista Previa
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg ml-2" id="btnResetear">
                         <i class="fas fa-undo"></i> Resetear
                     </button>
                 </div>
@@ -213,7 +358,7 @@
                         <div class="preview-area" id="previewArea">
                             <div class="text-muted">
                                 <i class="fas fa-eye fa-2x mb-3"></i>
-                                <p>Configure las opciones y haga clic en "Vista Previa" para ver cómo se verá el sticker</p>
+                                <p>Configure las opciones para ver la vista previa</p>
                             </div>
                         </div>
                         
@@ -221,7 +366,7 @@
                             <h6>Información de Configuración:</h6>
                             <div id="configInfo">
                                 <small class="text-muted">
-                                    Seleccione las opciones para ver la información de configuración
+                                    Configuración actual se mostrará aquí
                                 </small>
                             </div>
                         </div>
@@ -249,136 +394,405 @@
         </div>
     </form>
 </div>
-{% endblock %}
+{% endblock content %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Mostrar/ocultar campos personalizados
-    const tamañoSelect = document.getElementById('tamañoSelect');
-    const customSizeInputs = document.getElementById('customSizeInputs');
-    
-    function toggleCustomSize() {
-        if (tamañoSelect.value === 'personalizado') {
-            customSizeInputs.style.display = 'block';
-        } else {
-            customSizeInputs.style.display = 'none';
-        }
-    }
-    
-    tamañoSelect.addEventListener('change', toggleCustomSize);
-    toggleCustomSize(); // Ejecutar al cargar
-    
-    // Mostrar/ocultar opciones de QR
-    const incluirQR = document.getElementById('incluirQR');
-    const qrOptions = document.getElementById('qrOptions');
-    
-    function toggleQROptions() {
-        if (incluirQR.checked) {
-            qrOptions.style.display = 'block';
-        } else {
-            qrOptions.style.display = 'none';
-        }
-    }
-    
-    incluirQR.addEventListener('change', toggleQROptions);
-    toggleQROptions(); // Ejecutar al cargar
-    
-    // Actualizar información de configuración en tiempo real
-    function actualizarConfigInfo() {
-        const tamaño = tamañoSelect.value;
-        const incluirQRChecked = incluirQR.checked;
-        const camposSeleccionados = document.querySelectorAll('input[name="campos_incluir"]:checked').length;
-        
-        let info = `<strong>Tamaño:</strong> ${tamaño}<br>`;
-        info += `<strong>QR:</strong> ${incluirQRChecked ? 'Sí' : 'No'}<br>`;
-        info += `<strong>Campos:</strong> ${camposSeleccionados} seleccionados`;
-        
-        document.getElementById('configInfo').innerHTML = info;
-    }
-    
-    // Escuchar cambios en todos los campos
-    document.querySelectorAll('input, select').forEach(element => {
-        element.addEventListener('change', actualizarConfigInfo);
-    });
-    
-    actualizarConfigInfo(); // Ejecutar al cargar
-});
+// Variables globales
+var tamañoSelect, incluirQR, customSizeInputs, customQRSizeInputs, qrOptions;
+var tituloOptions, pieOptions, previewArea, configInfo;
 
-function mostrarVistaPrevia() {
-    // Simular vista previa (en una implementación real, esto haría una llamada AJAX)
-    const previewArea = document.getElementById('previewArea');
-    
-    previewArea.innerHTML = `
-        <div class="sticker-preview">
-            <div style="display: flex; align-items: flex-start;">
-                <div style="width: 60px; height: 60px; border: 1px solid #000; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-size: 8px;">
-                    QR
-                </div>
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; font-size: 14px;">12345678</div>
-                    <div style="font-size: 10px;">ESCRITORIO DE OFICINA</div>
-                    <div style="font-size: 9px;">Oficina: ADM-001</div>
-                    <div style="font-size: 9px;">Estado: Bueno</div>
-                    <div style="font-size: 8px;">MARCA MODELO</div>
-                </div>
-            </div>
-            <div class="size-indicator">Vista previa aproximada</div>
-        </div>
-    `;
+// Función principal para actualizar vista previa
+function actualizarVistaPrevia() {
+    console.log('Iniciando actualizarVistaPrevia...');
+    try {
+        if (!previewArea) {
+            console.error('previewArea no encontrado');
+            return;
+        }
+        
+        // Obtener configuración actual
+        var tamaño = tamañoSelect ? tamañoSelect.value : 'mediano';
+        var incluirQRChecked = incluirQR ? incluirQR.checked : true;
+        var posicionQR = document.getElementById('posicionQR') ? document.getElementById('posicionQR').value : 'izquierda';
+        var tamañoQR = document.getElementById('tamañoQR') ? document.getElementById('tamañoQR').value : 'mediano';
+        var incluirBorde = document.getElementById('incluirBorde') ? document.getElementById('incluirBorde').checked : true;
+        var incluirFecha = document.getElementById('incluirFecha') ? document.getElementById('incluirFecha').checked : true;
+        var incluirTitulo = document.getElementById('incluirTitulo') ? document.getElementById('incluirTitulo').checked : false;
+        var textoTitulo = document.getElementById('textoTitulo') ? document.getElementById('textoTitulo').value : '';
+        var incluirPie = document.getElementById('incluirPie') ? document.getElementById('incluirPie').checked : false;
+        var textoPie = document.getElementById('textoPie') ? document.getElementById('textoPie').value : '';
+        
+        console.log('Configuración obtenida:', { tamaño, incluirQRChecked, posicionQR });
+        
+        // Obtener campos seleccionados
+        var camposSeleccionados = [];
+        var checkboxes = document.querySelectorAll('input[name="campos_incluir"]:checked');
+        for (var i = 0; i < checkboxes.length; i++) {
+            camposSeleccionados.push(checkboxes[i].value);
+        }
+        console.log('Campos seleccionados:', camposSeleccionados);
+        
+        // Definir tamaños de etiqueta
+        var config = { ancho: 400, alto: 300, desc: 'Mediano (75x50mm)' };
+        
+        if (tamaño === 'pequeño') {
+            config = { ancho: 300, alto: 200, desc: 'Pequeño (50x30mm)' };
+        } else if (tamaño === 'grande') {
+            config = { ancho: 600, alto: 400, desc: 'Grande (100x75mm)' };
+        } else if (tamaño === 'extra_grande') {
+            config = { ancho: 800, alto: 600, desc: 'Extra Grande (125x100mm)' };
+        } else if (tamaño === 'personalizado') {
+            var anchoInput = document.querySelector('input[name="ancho_personalizado"]');
+            var altoInput = document.querySelector('input[name="alto_personalizado"]');
+            config = { 
+                ancho: anchoInput ? parseInt(anchoInput.value) || 400 : 400, 
+                alto: altoInput ? parseInt(altoInput.value) || 300 : 300, 
+                desc: 'Personalizado' 
+            };
+        }
+        
+        // Definir tamaños de QR
+        var tamañoQRPx = 30;
+        
+        if (tamañoQR === 'pequeño') {
+            tamañoQRPx = 20;
+        } else if (tamañoQR === 'grande') {
+            tamañoQRPx = 40;
+        } else if (tamañoQR === 'extra_grande') {
+            tamañoQRPx = 50;
+        } else if (tamañoQR === 'personalizado') {
+            var qrAnchoInput = document.getElementById('qrAnchoPersonalizado');
+            var qrAltoInput = document.getElementById('qrAltoPersonalizado');
+            var qrAncho = qrAnchoInput ? parseInt(qrAnchoInput.value) || 35 : 35;
+            var qrAlto = qrAltoInput ? parseInt(qrAltoInput.value) || 35 : 35;
+            tamañoQRPx = Math.max(qrAncho, qrAlto);
+        }
+        
+        // Calcular escala para vista previa
+        var maxWidth = 280;
+        var maxHeight = 180;
+        var escala = Math.min(maxWidth / config.ancho, maxHeight / config.alto, 0.8);
+        var anchoEscalado = config.ancho * escala;
+        var altoEscalado = config.alto * escala;
+        var tamañoQREscalado = tamañoQRPx * escala;
+        
+        console.log('Escalas calculadas:', { anchoEscalado, altoEscalado, tamañoQREscalado });
+        
+        // Generar contenido QR
+        var contenidoQR = '';
+        if (incluirQRChecked) {
+            contenidoQR = '<div style="width: ' + tamañoQREscalado + 'px; height: ' + tamañoQREscalado + 'px; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 8px; background: repeating-linear-gradient(45deg, #000, #000 1px, #fff 1px, #fff 2px); color: white; font-weight: bold; flex-shrink: 0;">QR</div>';
+        }
+        
+        // Generar contenido de texto
+        var contenidoTexto = '<div style="flex: 1; padding: 5px;">';
+        
+        for (var j = 0; j < camposSeleccionados.length; j++) {
+            var campo = camposSeleccionados[j];
+            if (campo === 'codigo_patrimonial') {
+                contenidoTexto += '<div style="font-weight: bold; font-size: 11px; margin-bottom: 3px;">PAT-001-2024</div>';
+            } else if (campo === 'denominacion') {
+                contenidoTexto += '<div style="font-size: 9px; margin-bottom: 2px;">ELECTROEYACULADOR BOVINOS</div>';
+            } else if (campo === 'oficina') {
+                contenidoTexto += '<div style="font-size: 8px; margin-bottom: 2px;">Oficina: DIR. REGIONAL</div>';
+            } else if (campo === 'estado') {
+                contenidoTexto += '<div style="font-size: 8px; margin-bottom: 2px;">Estado: BUENO</div>';
+            } else if (campo === 'marca_modelo') {
+                contenidoTexto += '<div style="font-size: 8px; margin-bottom: 2px;">MARCA MODELO XYZ</div>';
+            } else if (campo === 'serie') {
+                contenidoTexto += '<div style="font-size: 7px; margin-bottom: 2px;">Serie: SN123456789</div>';
+            } else if (campo === 'placa') {
+                contenidoTexto += '<div style="font-size: 8px; margin-bottom: 2px; color: #d63384; font-weight: bold;">Placa: ABC-123</div>';
+            }
+        }
+        
+        contenidoTexto += '</div>';
+        
+        // Determinar layout según posición del QR
+        var layout = '';
+        if (posicionQR === 'izquierda') {
+            layout = '<div style="display: flex; align-items: flex-start; gap: 8px;">' + contenidoQR + contenidoTexto + '</div>';
+        } else if (posicionQR === 'derecha') {
+            layout = '<div style="display: flex; align-items: flex-start; gap: 8px;">' + contenidoTexto + contenidoQR + '</div>';
+        } else if (posicionQR === 'arriba') {
+            layout = '<div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">' + contenidoQR + contenidoTexto + '</div>';
+        } else if (posicionQR === 'abajo') {
+            layout = '<div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">' + contenidoTexto + contenidoQR + '</div>';
+        } else {
+            layout = '<div style="display: flex; align-items: flex-start; gap: 8px;">' + contenidoQR + contenidoTexto + '</div>';
+        }
+        
+        // Agregar título si está habilitado
+        var tituloHTML = '';
+        if (incluirTitulo && textoTitulo && textoTitulo.trim()) {
+            tituloHTML = '<div style="position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: bold; color: #333; text-align: center;">' + textoTitulo.substring(0, 60) + '</div>';
+        }
+        
+        // Agregar pie de página si está habilitado
+        var pieHTML = '';
+        if (incluirPie && textoPie && textoPie.trim()) {
+            pieHTML = '<div style="position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 5px; color: #666; text-align: center;">' + textoPie.substring(0, 50) + '</div>';
+        }
+        
+        // Agregar fecha si está habilitada
+        var fechaHTML = '';
+        if (incluirFecha) {
+            var posicionFecha = (incluirPie && textoPie && textoPie.trim()) ? 'bottom: 12px; right: 2px;' : 'bottom: 2px; right: 2px;';
+            fechaHTML = '<div style="position: absolute; ' + posicionFecha + ' font-size: 6px; color: #666;">' + new Date().toLocaleDateString() + '</div>';
+        }
+        
+        // Estilo del borde
+        var estiloBorde = incluirBorde ? 'border: 2px solid #333;' : 'border: 1px dashed #ccc;';
+        
+        var htmlFinal = '<div class="sticker-preview" style="width: ' + anchoEscalado + 'px; height: ' + altoEscalado + 'px; position: relative; ' + estiloBorde + ' background: white; padding: 8px; box-sizing: border-box;">';
+        htmlFinal += tituloHTML + layout + pieHTML + fechaHTML;
+        htmlFinal += '</div>';
+        htmlFinal += '<div class="size-indicator" style="margin-top: 10px; text-align: center;">';
+        htmlFinal += '<strong>' + config.desc + '</strong><br>';
+        htmlFinal += '<small>' + config.ancho + ' x ' + config.alto + ' dots</small><br>';
+        htmlFinal += '<small>QR: ' + tamañoQRPx + 'x' + tamañoQRPx + ' dots (' + tamañoQR + ')</small><br>';
+        htmlFinal += '<small>Campos: ' + camposSeleccionados.length + ' seleccionados</small>';
+        htmlFinal += '</div>';
+        
+        previewArea.innerHTML = htmlFinal;
+        console.log('Vista previa actualizada correctamente');
+        
+        // Actualizar información de configuración
+        actualizarConfigInfo();
+        
+    } catch (error) {
+        console.error('Error actualizando vista previa:', error);
+    }
 }
 
+// Función para actualizar información de configuración
+function actualizarConfigInfo() {
+    if (!configInfo) return;
+    
+    const tamaño = tamañoSelect.value;
+    const incluirQRChecked = incluirQR.checked;
+    const posicionQR = document.getElementById('posicionQR').value;
+    const tamañoQR = document.getElementById('tamañoQR').value;
+    const incluirBorde = document.getElementById('incluirBorde').checked;
+    const incluirFecha = document.getElementById('incluirFecha').checked;
+    const incluirTitulo = document.getElementById('incluirTitulo').checked;
+    const incluirPie = document.getElementById('incluirPie').checked;
+    const camposSeleccionados = document.querySelectorAll('input[name="campos_incluir"]:checked').length;
+    
+    let info = `<strong>Tamaño:</strong> ${tamaño}<br>`;
+    info += `<strong>QR:</strong> ${incluirQRChecked ? `Sí (${tamañoQR}, ${posicionQR})` : 'No'}<br>`;
+    info += `<strong>Campos:</strong> ${camposSeleccionados} seleccionados<br>`;
+    info += `<strong>Título:</strong> ${incluirTitulo ? 'Sí' : 'No'}<br>`;
+    info += `<strong>Pie:</strong> ${incluirPie ? 'Sí' : 'No'}<br>`;
+    info += `<strong>Borde:</strong> ${incluirBorde ? 'Sí' : 'No'}<br>`;
+    info += `<strong>Fecha:</strong> ${incluirFecha ? 'Sí' : 'No'}`;
+    
+    configInfo.innerHTML = info;
+}
+
+// Función para mostrar vista previa
+function mostrarVistaPrevia() {
+    actualizarVistaPrevia();
+}
+
+// Función para imprimir vista previa
+function imprimirVistaPrevia() {
+    const previewContent = previewArea.innerHTML;
+    
+    if (!previewContent || previewContent.includes('Configure las opciones')) {
+        alert('Primero genere una vista previa antes de imprimir');
+        return;
+    }
+    
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Vista Previa - Sticker</title>
+            <style>
+                @page { size: A4; margin: 20mm; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; }
+                .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+                .preview-container { display: flex; justify-content: center; align-items: center; min-height: 300px; }
+                .sticker-preview { transform: scale(2); transform-origin: center; }
+                .info-section { margin-top: 50px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+                @media print { body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <h2>Vista Previa de Sticker ZPL</h2>
+                <p>Sistema de Patrimonio - DRTC Puno</p>
+                <p>Generado: ${new Date().toLocaleString()}</p>
+            </div>
+            <div class="preview-container">${previewContent}</div>
+            <div class="info-section">
+                <h4>Información de Configuración:</h4>
+                <div>${configInfo.innerHTML}</div>
+            </div>
+            <script>
+                window.onload = function() {
+                    setTimeout(function() { window.print(); }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+}
+
+// Función para resetear configuración
 function resetearConfiguracion() {
     if (confirm('¿Está seguro de que desea resetear la configuración?')) {
-        // Resetear formulario a valores por defecto
-        document.getElementById('tamañoSelect').value = 'mediano';
-        document.getElementById('incluirQR').checked = true;
-        document.querySelector('select[name="posicion_qr"]').value = 'izquierda';
+        tamañoSelect.value = 'mediano';
+        incluirQR.checked = true;
+        document.getElementById('posicionQR').value = 'izquierda';
+        document.getElementById('tamañoQR').value = 'mediano';
         document.getElementById('incluirBorde').checked = true;
         document.getElementById('incluirFecha').checked = true;
+        document.getElementById('incluirTitulo').checked = false;
+        document.getElementById('incluirPie').checked = false;
         
-        // Marcar campos por defecto
         const camposDefault = ['codigo_patrimonial', 'denominacion', 'oficina', 'estado'];
         document.querySelectorAll('input[name="campos_incluir"]').forEach(checkbox => {
             checkbox.checked = camposDefault.includes(checkbox.value);
         });
         
-        // Actualizar vista
-        document.getElementById('customSizeInputs').style.display = 'none';
-        document.getElementById('qrOptions').style.display = 'block';
+        toggleCustomSize();
+        toggleCustomQRSize();
+        toggleQROptions();
+        toggleTituloOptions();
+        togglePieOptions();
         
-        // Limpiar vista previa
-        document.getElementById('previewArea').innerHTML = `
-            <div class="text-muted">
-                <i class="fas fa-eye fa-2x mb-3"></i>
-                <p>Configure las opciones y haga clic en "Vista Previa" para ver cómo se verá el sticker</p>
-            </div>
-        `;
+        actualizarVistaPrevia();
     }
 }
 
-// Validación del formulario
-document.getElementById('configuracionForm').addEventListener('submit', function(e) {
-    const camposSeleccionados = document.querySelectorAll('input[name="campos_incluir"]:checked').length;
-    
-    if (camposSeleccionados === 0) {
-        e.preventDefault();
-        alert('Debe seleccionar al menos un campo para mostrar en el sticker');
-        return false;
+// Funciones para mostrar/ocultar opciones
+function toggleCustomSize() {
+    if (tamañoSelect.value === 'personalizado') {
+        customSizeInputs.style.display = 'block';
+    } else {
+        customSizeInputs.style.display = 'none';
     }
-    
-    // Validar tamaño personalizado
-    const tamaño = document.getElementById('tamañoSelect').value;
-    if (tamaño === 'personalizado') {
-        const ancho = parseInt(document.querySelector('input[name="ancho_personalizado"]').value);
-        const alto = parseInt(document.querySelector('input[name="alto_personalizado"]').value);
-        
-        if (ancho < 200 || ancho > 1200 || alto < 150 || alto > 800) {
-            e.preventDefault();
-            alert('Las dimensiones personalizadas deben estar dentro de los rangos permitidos');
-            return false;
-        }
+}
+
+function toggleCustomQRSize() {
+    const tamañoQR = document.getElementById('tamañoQR');
+    if (tamañoQR.value === 'personalizado') {
+        customQRSizeInputs.style.display = 'block';
+    } else {
+        customQRSizeInputs.style.display = 'none';
     }
+}
+
+function toggleQROptions() {
+    if (incluirQR.checked) {
+        qrOptions.style.display = 'block';
+    } else {
+        qrOptions.style.display = 'none';
+    }
+}
+
+function toggleTituloOptions() {
+    const incluirTitulo = document.getElementById('incluirTitulo');
+    if (incluirTitulo.checked) {
+        tituloOptions.style.display = 'block';
+    } else {
+        tituloOptions.style.display = 'none';
+    }
+}
+
+function togglePieOptions() {
+    const incluirPie = document.getElementById('incluirPie');
+    if (incluirPie.checked) {
+        pieOptions.style.display = 'block';
+    } else {
+        pieOptions.style.display = 'none';
+    }
+}
+
+// Inicialización cuando se carga el DOM
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener referencias a elementos
+    tamañoSelect = document.getElementById('tamañoSelect');
+    incluirQR = document.getElementById('incluirQR');
+    customSizeInputs = document.getElementById('customSizeInputs');
+    customQRSizeInputs = document.getElementById('customQRSizeInputs');
+    qrOptions = document.getElementById('qrOptions');
+    tituloOptions = document.getElementById('tituloOptions');
+    pieOptions = document.getElementById('pieOptions');
+    previewArea = document.getElementById('previewArea');
+    configInfo = document.getElementById('configInfo');
+    
+    // Configurar event listeners para botones
+    document.getElementById('btnVistaPrevia').addEventListener('click', mostrarVistaPrevia);
+    document.getElementById('btnImprimir').addEventListener('click', imprimirVistaPrevia);
+    document.getElementById('btnResetear').addEventListener('click', resetearConfiguracion);
+    
+    // Event listeners para cambios
+    tamañoSelect.addEventListener('change', function() {
+        toggleCustomSize();
+        actualizarVistaPrevia();
+    });
+    
+    incluirQR.addEventListener('change', function() {
+        toggleQROptions();
+        actualizarVistaPrevia();
+    });
+    
+    document.getElementById('tamañoQR').addEventListener('change', function() {
+        toggleCustomQRSize();
+        actualizarVistaPrevia();
+    });
+    
+    document.getElementById('incluirTitulo').addEventListener('change', function() {
+        toggleTituloOptions();
+        actualizarVistaPrevia();
+    });
+    
+    document.getElementById('incluirPie').addEventListener('change', function() {
+        togglePieOptions();
+        actualizarVistaPrevia();
+    });
+    
+    // Event listeners para todos los campos que afectan la vista previa
+    const campos = [
+        'input[name="campos_incluir"]',
+        'input[name="ancho_personalizado"]',
+        'input[name="alto_personalizado"]',
+        'select[name="posicion_qr"]',
+        'input[name="qr_ancho_personalizado"]',
+        'input[name="qr_alto_personalizado"]',
+        'input[name="incluir_borde"]',
+        'input[name="incluir_fecha"]',
+        'input[name="texto_titulo"]',
+        'select[name="posicion_titulo"]',
+        'select[name="tamaño_fuente_titulo"]',
+        'input[name="texto_pie"]',
+        'select[name="posicion_pie"]',
+        'select[name="tamaño_fuente_pie"]'
+    ];
+    
+    campos.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+            element.addEventListener('change', actualizarVistaPrevia);
+            if (element.type === 'text') {
+                element.addEventListener('input', actualizarVistaPrevia);
+            }
+        });
+    });
+    
+    // Inicializar estado
+    toggleCustomSize();
+    toggleCustomQRSize();
+    toggleQROptions();
+    toggleTituloOptions();
+    togglePieOptions();
+    
+    // Generar vista previa inicial
+    setTimeout(actualizarVistaPrevia, 500);
 });
 </script>
 {% endblock %}

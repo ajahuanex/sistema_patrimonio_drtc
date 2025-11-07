@@ -59,7 +59,8 @@ class Catalogo(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.codigo} - {self.denominacion}"
+        base_str = f"{self.codigo} - {self.denominacion}"
+        return self.get_str_with_delete_status(base_str)
     
     def clean(self):
         """Validaciones personalizadas"""

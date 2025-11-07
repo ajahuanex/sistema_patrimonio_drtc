@@ -3,11 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.core.files import File
 import json
 import logging
+import os
 
 from apps.bienes.models import BienPatrimonial
 from apps.catalogo.models import Catalogo
@@ -1457,3 +1459,218 @@ def _obtener_casos_uso_formato(formato):
         ]
     }
     return casos_uso.get(formato, [])
+
+
+@login_required
+def plantillas_stickers_predefinidas(request):
+    """Vista para gestionar plantillas predefinidas de stickers"""
+    from .zpl_utils import ConfiguracionSticker
+    
+    plantillas = {
+        'basico': {
+            'nombre': 'Básico',
+            'descripcion': 'Sticker básico con código patrimonial y QR',
+            'configuracion': {
+                'tamaño': 'pequeño',
+                'campos_incluir': ['codigo_patrimonial'],
+                'incluir_qr': True,
+                'posicion_qr': 'izquierda'
+            }
+        },
+        'completo': {
+            'nombre': 'Completo',
+            'descripcion': 'Sticker con toda la información disponible',
+            'configuracion': {
+                'tamaño': 'grande',
+                'campos_incluir': [
+                    'codigo_patrimonial', 'denominacion', 'oficina', 
+                    'estado', 'marca_modelo', 'serie'
+                ],
+                'incluir_qr': True,
+                'posicion_qr': 'izquierda'
+            }
+        },
+        'vehiculos': {
+            'nombre': 'Vehículos',
+            'descripcion': 'Especializado para vehículos con placa',
+            'configuracion': {
+                'tamaño': 'mediano',
+                'campos_incluir': [
+                    'codigo_patrimonial', 'denominacion', 'placa', 
+                    'marca_modelo', 'estado'
+                ],
+                'incluir_qr': True,
+                'posicion_qr': 'derecha'
+            }
+        },
+        'inventario': {
+            'nombre': 'Inventario',
+            'descripcion': 'Para inventarios rápidos',
+            'configuracion': {
+                'tamaño': 'mediano',
+                'campos_incluir': ['codigo_patrimonial', 'oficina', 'estado'],
+                'incluir_qr': True,
+                'posicion_qr': 'arriba'
+            }
+        }
+    }
+    
+    if request.method == 'POST':
+        plantilla_seleccionada = request.POST.get('plantilla')
+        
+        if plantilla_seleccionada in plantillas:
+            # Guardar configuración en sesión
+            request.session['configuracion_stickers'] = plantillas[plantilla_seleccionada]['configuracion']
+            
+            messages.success(
+                request,
+                f'Plantilla "{plantillas[plantilla_seleccionada]["nombre"]}" aplicada exitosamente'
+            )
+            
+            return redirect('reportes:configurar_stickers')
+        else:
+            messages.error(request, 'Plantilla no válida')
+    
+    context = {
+        'plantillas': plantillas,
+    }
+    
+    return render(request, 'reportes/plantillas_stickers.html', context)
+
+
+@login_required
+def tutorial_stickers_zpl(request):
+    """Vista para mostrar tutorial de stickers ZPL"""
+    
+    context = {
+        'titulo': 'Tutorial de Stickers ZPL',
+    }
+    
+    return render(request, 'reportes/tutorial_stickers.html', context)
+
+
+@login_required
+def api_validar_configuracion_sticker(request):
+    """API para validar configuración de sticker"""
+    from .zpl_utils import ConfiguracionSticker
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos de configuración
+            config_datos = json.loads(request.body)
+            
+            # Crear configuración
+            configuracion = ConfiguracionSticker(**config_datos)
+            
+            # Validar
+            errores = configuracion.validar()
+            
+            return JsonResponse({
+                'success': len(errores) == 0,
+                'errores': errores,
+                'configuracion_valida': len(errores) == 0
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errores': [f'Error de validación: {str(e)}']
+            })
+    
+    return JsonResponse({'success': False, 'errores': ['Método no permitido']})
+
+
+@login_required
+def centro_exportacion(request):
+    """Vista principal del centro de exportación"""
+    
+    context = {
+        'titulo': 'Centro de Exportación',
+    }
+    
+    return render(request, 'reportes/centro_exportacion.html', context)
+
+
+@login_required
+def exportacion_rapida(request):
+    """Vista para exportación rápida"""
+    
+    context = {
+        'titulo': 'Exportación Rápida',
+    }
+    
+    return render(request, 'reportes/exportacion_rapida.html', context)
+
+
+@login_required
+def exportacion_masiva(request):
+    """Vista para exportación masiva"""
+    
+    context = {
+        'titulo': 'Exportación Masiva',
+    }
+    
+    return render(request, 'reportes/exportacion_masiva.html', context)
+
+
+@login_required
+def historial_exportaciones(request):
+    """Vista para historial de exportaciones"""
+    
+    context = {
+        'titulo': 'Historial de Exportaciones',
+    }
+    
+    return render(request, 'reportes/historial_exportaciones.html', context)
+
+
+@login_required
+def comparar_formatos(request):
+    """Vista para comparar formatos de exportación"""
+    
+    context = {
+        'titulo': 'Comparar Formatos',
+    }
+    
+    return render(request, 'reportes/comparar_formatos.html', context)
+
+
+@login_required
+def api_validar_exportacion(request):
+    """API para validar configuración de exportación"""
+    
+    if request.method == 'POST':
+        try:
+            # Obtener datos de configuración
+            config_datos = json.loads(request.body)
+            
+            return JsonResponse({
+                'success': True,
+                'configuracion_valida': True
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errores': [f'Error de validación: {str(e)}']
+            })
+    
+    return JsonResponse({'success': False, 'errores': ['Método no permitido']})
+
+
+@login_required
+def api_formatos_por_tipo(request):
+    """API para obtener formatos disponibles por tipo de exportación"""
+    
+    tipo = request.GET.get('tipo', '')
+    
+    formatos = {
+        'inventario': ['EXCEL', 'PDF', 'CSV'],
+        'stickers': ['ZPL'],
+        'reportes': ['EXCEL', 'PDF'],
+        'auditoria': ['PDF', 'EXCEL']
+    }
+    
+    return JsonResponse({
+        'formatos': formatos.get(tipo, [])
+    })

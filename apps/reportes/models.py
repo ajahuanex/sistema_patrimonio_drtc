@@ -185,7 +185,8 @@ class ConfiguracionFiltro(BaseModel):
         unique_together = [['usuario', 'nombre']]
     
     def __str__(self):
-        return f"{self.nombre} ({self.usuario.username})"
+        base_str = f"{self.nombre} ({self.usuario.username})"
+        return self.get_str_with_delete_status(base_str)
     
     def clean(self):
         """Validaciones personalizadas"""
@@ -400,7 +401,8 @@ class ReporteGenerado(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.nombre} - {self.get_tipo_reporte_display()} ({self.usuario.username})"
+        base_str = f"{self.nombre} - {self.get_tipo_reporte_display()} ({self.usuario.username})"
+        return self.get_str_with_delete_status(base_str)
     
     def marcar_completado(self):
         """Marca el reporte como completado"""

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sesión Cerrada - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logout-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .logout-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+    
+    .logout-icon {
+        font-size: 48px;
+        color: #28a745;
+        margin-bottom: 20px;
+    }
+    
+    .logout-message h2 {
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .logout-message p {
+        color: #666;
+        margin-bottom: 30px;
+    }
+    
+    .btn-login-again {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-login-again:hover {
+        transform: translateY(-2px);
+        text-decoration: none;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-card">
+        <div class="logout-icon">
+            ✓
+        </div>
+        
+        <div class="logout-message">
+            <h2>Sesión Cerrada</h2>
+            <p>Has cerrado sesión exitosamente del Sistema de Patrimonio.</p>
+            
+            <a href="{% url 'login' %}" class="btn-login-again">
+                Iniciar Sesión Nuevamente
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

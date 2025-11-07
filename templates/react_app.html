@@ -3,14 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Registro de Patrimonio</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'frontend/assets/index.css' %}">
+    <title>Sistema de Patrimonio - DRTC Puno</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    
+    <!-- React App CSS -->
+    <link rel="stylesheet" href="/static/frontend/css/main.css">
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        #root {
+            min-height: 100vh;
+        }
+        
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="module" src="{% static 'frontend/assets/index.js' %}"></script>
+    <div id="root">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Cargando Sistema de Patrimonio...</div>
+        </div>
+    </div>
+    
+    <!-- User data for React -->
+    <script>
+        window.USER_DATA = {
+            isAuthenticated: {{ request.user.is_authenticated|yesno:"true,false" }},
+            username: "{{ request.user.username|escapejs }}",
+            firstName: "{{ request.user.first_name|escapejs }}",
+            lastName: "{{ request.user.last_name|escapejs }}",
+            email: "{{ request.user.email|escapejs }}",
+            {% if request.user.profile %}
+            role: "{{ request.user.profile.role|escapejs }}",
+            telefono: "{{ request.user.profile.telefono|escapejs }}",
+            cargo: "{{ request.user.profile.cargo|escapejs }}",
+            {% endif %}
+            csrfToken: "{{ csrf_token }}"
+        };
+        
+        window.API_BASE_URL = "{{ request.scheme }}://{{ request.get_host }}/api";
+    </script>
+    
+    <!-- React App JavaScript -->
+    <script src="/static/frontend/js/main.js"></script>
+    
+    <!-- Fallback if React doesn't load -->
+    <script>
+        setTimeout(function() {
+            const root = document.getElementById('root');
+            if (root && root.innerHTML.includes('loading-container')) {
+                root.innerHTML = `
+                    <div style="padding: 40px; text-align: center; font-family: Arial, sans-serif;">
+                        <h1>Sistema de Patrimonio</h1>
+                        <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+                        <div style="margin: 30px 0;">
+                            <a href="/admin/" style="display: inline-block; padding: 10px 20px; background: #007cba; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">
+                                Panel de Administración
+                            </a>
+                            <a href="/catalogo/" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">
+                                Gestión de Catálogo
+                            </a>
+                            <a href="/bienes/" style="display: inline-block; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin: 5px;">
+                                Gestión de Bienes
+                            </a>
+                            <a href="/reportes/" style="display: inline-block; padding: 10px 20px; background: #ffc107; color: black; text-decoration: none; border-radius: 5px; margin: 5px;">
+                                Reportes
+                            </a>
+                        </div>
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <p style="color: #666; font-size: 14px;">
+                                Usuario: {{ request.user.username }} | 
+                                <a href="{% url 'admin:logout' %}">Cerrar Sesión</a>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+        }, 3000);
+    </script>
 </body>
 </html>

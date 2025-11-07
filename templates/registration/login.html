@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Iniciar Sesión - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .login-header h2 {
+        color: #333;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .login-header p {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-login {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-2px);
+    }
+    
+    .alert {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .system-info {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e1e5e9;
+    }
+    
+    .system-info h4 {
+        color: #333;
+        margin-bottom: 5px;
+        font-size: 16px;
+    }
+    
+    .system-info p {
+        color: #666;
+        font-size: 12px;
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>Sistema de Patrimonio</h2>
+            <p>Dirección Regional de Transportes y Comunicaciones - Puno</p>
+        </div>
+        
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <strong>Error:</strong> Usuario o contraseña incorrectos.
+            </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Usuario:</label>
+                {{ form.username }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Contraseña:</label>
+                {{ form.password }}
+            </div>
+            
+            <button type="submit" class="btn-login">
+                Iniciar Sesión
+            </button>
+            
+            <input type="hidden" name="next" value="{{ next }}" />
+        </form>
+        
+        <div class="system-info">
+            <h4>Sistema de Registro de Patrimonio</h4>
+            <p>Versión 1.0 - Desarrollado para DRTC Puno</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-focus en el campo de usuario
+    document.addEventListener('DOMContentLoaded', function() {
+        const usernameField = document.getElementById('id_username');
+        if (usernameField) {
+            usernameField.focus();
+        }
+    });
+</script>
+{% endblock %}

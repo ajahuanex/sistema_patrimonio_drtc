@@ -335,7 +335,7 @@ class BienPatrimonialModelTest(TestCase):
         BienPatrimonial.objects.create(**self.bien_data)
         
         # Intentar crear otro con el mismo código
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             BienPatrimonial.objects.create(**self.bien_data)
     
     def test_qr_code_unico(self):
@@ -574,7 +574,7 @@ class QRCodeGeneratorTest(TestCase):
         
         # Crear datos de prueba
         self.catalogo = Catalogo.objects.create(
-            codigo='04-22-001',
+            codigo='04220001',
             denominacion='ELECTROEYACULADOR PARA BOVINOS',
             grupo='04-AGRÍCOLA Y PESQUERO',
             clase='22-EQUIPO',
@@ -680,7 +680,7 @@ class QRScanAPITest(APITestCase):
         
         # Crear datos de prueba
         self.catalogo = Catalogo.objects.create(
-            codigo='04-22-001',
+            codigo='04220001',
             denominacion='ELECTROEYACULADOR PARA BOVINOS',
             grupo='04-AGRÍCOLA Y PESQUERO',
             clase='22-EQUIPO',
@@ -760,7 +760,7 @@ class UpdateEstadoAPITest(APITestCase):
         
         # Crear datos de prueba
         self.catalogo = Catalogo.objects.create(
-            codigo='04-22-001',
+            codigo='04220001',
             denominacion='ELECTROEYACULADOR PARA BOVINOS',
             grupo='04-AGRÍCOLA Y PESQUERO',
             clase='22-EQUIPO',
@@ -838,7 +838,7 @@ class QRCodeViewTest(TestCase):
         
         # Crear datos de prueba
         self.catalogo = Catalogo.objects.create(
-            codigo='04-22-001',
+            codigo='04220001',
             denominacion='ELECTROEYACULADOR PARA BOVINOS',
             grupo='04-AGRÍCOLA Y PESQUERO',
             clase='22-EQUIPO',

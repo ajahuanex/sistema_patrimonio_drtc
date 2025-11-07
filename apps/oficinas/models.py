@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from apps.core.models import BaseModel
+import json
 
 
 class Oficina(BaseModel):
@@ -56,6 +58,24 @@ class Oficina(BaseModel):
         help_text='Indica si la oficina está activa'
     )
     
+    # Campos de auditoría
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='oficinas_creadas',
+        verbose_name='Creado por',
+        null=True,
+        blank=True
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='oficinas_modificadas',
+        verbose_name='Modificado por',
+        null=True,
+        blank=True
+    )
+    
     class Meta:
         verbose_name = 'Oficina'
         verbose_name_plural = 'Oficinas'
@@ -68,7 +88,8 @@ class Oficina(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.codigo} - {self.nombre}"
+        base_str = f"{self.codigo} - {self.nombre}"
+        return self.get_str_with_delete_status(base_str)
     
     def clean(self):
         """Validaciones personalizadas"""
@@ -155,3 +176,135 @@ class Oficina(BaseModel):
         """Activa la oficina"""
         self.estado = True
         self.save()
+
+
+class HistorialOficina(models.Model):
+    """Modelo para el historial de cambios de oficinas"""
+    
+    ACCIONES = [
+        ('CREAR', 'Creación'),
+        ('EDITAR', 'Edición'),
+        ('ACTIVAR', 'Activación'),
+        ('DESACTIVAR', 'Desactivación'),
+        ('IMPORTAR', 'Importación'),
+    ]
+    
+    oficina = models.ForeignKey(
+        Oficina,
+        on_delete=models.CASCADE,
+        related_name='historial',
+        verbose_name='Oficina'
+    )
+    accion = models.CharField(
+        max_length=20,
+        choices=ACCIONES,
+        verbose_name='Acción'
+    )
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        verbose_name='Usuario'
+    )
+    fecha = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Fecha'
+    )
+    datos_anteriores = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='Datos anteriores',
+        help_text='Estado anterior de la oficina'
+    )
+    datos_nuevos = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='Datos nuevos',
+        help_text='Estado nuevo de la oficina'
+    )
+    observaciones = models.TextField(
+        blank=True,
+        verbose_name='Observaciones',
+        help_text='Comentarios adicionales sobre el cambio'
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        verbose_name='Dirección IP'
+    )
+    user_agent = models.TextField(
+        blank=True,
+        verbose_name='User Agent'
+    )
+    
+    class Meta:
+        verbose_name = 'Historial de Oficina'
+        verbose_name_plural = 'Historiales de Oficinas'
+        ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['oficina', '-fecha']),
+            models.Index(fields=['usuario', '-fecha']),
+            models.Index(fields=['accion', '-fecha']),
+        ]
+    
+    def __str__(self):
+        return f"{self.oficina.codigo} - {self.get_accion_display()} por {self.usuario.username} ({self.fecha.strftime('%d/%m/%Y %H:%M')})"
+    
+    @property
+    def cambios_detallados(self):
+        """Retorna una lista de cambios específicos"""
+        if not self.datos_anteriores or not self.datos_nuevos:
+            return []
+        
+        cambios = []
+        campos_nombres = {
+            'codigo': 'Código',
+            'nombre': 'Nombre',
+            'descripcion': 'Descripción',
+            'responsable': 'Responsable',
+            'cargo_responsable': 'Cargo del Responsable',
+            'telefono': 'Teléfono',
+            'email': 'Email',
+            'ubicacion': 'Ubicación',
+            'estado': 'Estado'
+        }
+        
+        for campo, valor_nuevo in self.datos_nuevos.items():
+            if campo in self.datos_anteriores:
+                valor_anterior = self.datos_anteriores[campo]
+                if valor_anterior != valor_nuevo:
+                    nombre_campo = campos_nombres.get(campo, campo)
+                    cambios.append({
+                        'campo': nombre_campo,
+                        'anterior': valor_anterior,
+                        'nuevo': valor_nuevo
+                    })
+        
+        return cambios
+    
+    @classmethod
+    def registrar_cambio(cls, oficina, accion, usuario, datos_anteriores=None, datos_nuevos=None, observaciones='', request=None):
+        """Registra un cambio en el historial"""
+        # Obtener información de la request si está disponible
+        ip_address = None
+        user_agent = ''
+        
+        if request:
+            # Obtener IP real considerando proxies
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip_address = request.META.get('REMOTE_ADDR')
+            
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
+        
+        return cls.objects.create(
+            oficina=oficina,
+            accion=accion,
+            usuario=usuario,
+            datos_anteriores=datos_anteriores,
+            datos_nuevos=datos_nuevos,
+            observaciones=observaciones,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Reporte - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-trash"></i>
+                        Confirmar Eliminación de Reporte
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>¿Está seguro que desea eliminar el reporte "{{ reporte.nombre }}"?</strong>
+                        <br>
+                        Esta acción no se puede deshacer y se eliminará el archivo generado.
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h5>Detalles del reporte:</h5>
+                            <ul>
+                                <li><strong>Nombre:</strong> {{ reporte.nombre }}</li>
+                                <li><strong>Tipo:</strong> {{ reporte.get_tipo_reporte_display }}</li>
+                                <li><strong>Formato:</strong> {{ reporte.get_formato_display }}</li>
+                                <li><strong>Estado:</strong> {{ reporte.get_estado_display }}</li>
+                                <li><strong>Fecha de generación:</strong> {{ reporte.fecha_inicio|date:"d/m/Y H:i" }}</li>
+                                <li><strong>Total de registros:</strong> {{ reporte.total_registros|default:"No disponible" }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Sí, eliminar
+                        </button>
+                        <a href="{% url 'reportes:mis_reportes' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

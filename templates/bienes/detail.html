@@ -6,8 +6,9 @@
 {% block extra_css %}
 <style>
     .bien-detail-container {
-        max-width: 1200px;
+        max-width: 1000px;
         margin: 0 auto;
+        padding: 20px;
     }
     
     .bien-card {
@@ -50,8 +51,8 @@
         font-size: 1.3rem;
         font-weight: bold;
         margin-bottom: 15px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #e9ecef;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 5px;
     }
     
     .info-grid {
@@ -61,33 +62,33 @@
     }
     
     .info-item {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-        border-left: 4px solid #007bff;
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
     }
     
     .info-label {
         font-weight: bold;
         color: #495057;
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        flex: 0 0 40%;
     }
     
     .info-value {
         color: #212529;
-        font-size: 1.1rem;
-        word-wrap: break-word;
+        flex: 1;
+        text-align: right;
     }
     
     .estado-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        border-radius: 25px;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
         font-weight: bold;
-        font-size: 1rem;
         text-transform: uppercase;
     }
     
@@ -99,77 +100,73 @@
     .estado-C { background: #343a40; color: #ffffff; }
     
     .qr-section {
-        background: #e9ecef;
-        border-radius: 12px;
+        text-align: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .qr-code {
+        max-width: 150px;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background: white;
+    }
+    
+    .actions-bar {
+        background: #f8f9fa;
         padding: 20px;
         text-align: center;
-        margin: 20px 0;
+        border-top: 1px solid #dee2e6;
     }
     
-    .qr-code-display {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        display: inline-block;
-        margin: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .actions-section {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 20px;
-    }
-    
-    .btn-action {
-        margin-right: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .historial-table {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .historial-item {
-        border-left: 4px solid #007bff;
-        background: #f8f9fa;
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 0 8px 8px 0;
-    }
-    
-    .historial-fecha {
-        font-size: 0.9rem;
-        color: #6c757d;
+    .btn {
+        margin: 0 5px;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
         font-weight: bold;
+        display: inline-block;
+        transition: all 0.3s ease;
     }
     
-    .historial-cambio {
-        font-size: 1rem;
-        margin: 5px 0;
+    .btn-primary { background: #007bff; color: white; border: 1px solid #007bff; }
+    .btn-warning { background: #ffc107; color: #212529; border: 1px solid #ffc107; }
+    .btn-secondary { background: #6c757d; color: white; border: 1px solid #6c757d; }
+    .btn-info { background: #17a2b8; color: white; border: 1px solid #17a2b8; }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        text-decoration: none;
+        color: inherit;
     }
     
-    .historial-obs {
-        font-size: 0.9rem;
-        color: #495057;
-        font-style: italic;
+    .vehicle-info {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+    }
+    
+    .observations {
+        background: #fff3cd;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #ffc107;
+        color: #856404;
+    }
+    
+    .currency {
+        color: #28a745;
+        font-weight: bold;
     }
     
     @media (max-width: 768px) {
         .bien-detail-container {
             padding: 10px;
-        }
-        
-        .bien-header {
-            padding: 20px;
-        }
-        
-        .bien-code {
-            font-size: 1.5rem;
         }
         
         .bien-body {
@@ -179,128 +176,204 @@
         .info-grid {
             grid-template-columns: 1fr;
         }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .info-value {
+            text-align: left;
+            margin-top: 5px;
+        }
+        
+        .actions-bar {
+            padding: 15px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="bien-detail-container">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Inicio</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'bienes:list' %}">Bienes</a></li>
-            <li class="breadcrumb-item active">{{ bien.codigo_patrimonial }}</li>
-        </ol>
-    </nav>
-    
-    <!-- Información principal del bien -->
     <div class="bien-card">
+        <!-- Header -->
         <div class="bien-header">
             <h1 class="bien-code">{{ bien.codigo_patrimonial }}</h1>
-            <p class="bien-name">{{ bien.denominacion }}</p>
-            <div class="mt-3">
-                <span class="estado-badge estado-{{ bien.estado_bien }}">
-                    {{ bien.estado_bien_texto }}
-                </span>
-            </div>
+            <p class="bien-name">{{ bien.catalogo.denominacion }}</p>
         </div>
         
+        <!-- Body -->
         <div class="bien-body">
-            <!-- Información básica -->
+            <!-- Información Básica -->
             <div class="info-section">
-                <h3 class="section-title"><i class="fas fa-info-circle"></i> Información Básica</h3>
+                <h3 class="section-title">📋 Información Básica</h3>
                 <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Código Interno</div>
-                        <div class="info-value">{{ bien.codigo_interno|default:"No asignado" }}</div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="info-label">Catálogo</div>
-                        <div class="info-value">
-                            {{ bien.catalogo.codigo }} - {{ bien.catalogo.denominacion }}
-                            <br><small class="text-muted">{{ bien.grupo_clase }}</small>
+                    <div>
+                        <div class="info-item">
+                            <span class="info-label">Código Patrimonial:</span>
+                            <span class="info-value"><strong>{{ bien.codigo_patrimonial }}</strong></span>
+                        </div>
+                        
+                        {% if bien.codigo_interno %}
+                        <div class="info-item">
+                            <span class="info-label">Código Interno:</span>
+                            <span class="info-value">{{ bien.codigo_interno }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="info-item">
+                            <span class="info-label">Estado:</span>
+                            <span class="info-value">
+                                <span class="estado-badge estado-{{ bien.estado_bien }}">
+                                    {% if bien.estado_bien == 'N' %}Nuevo
+                                    {% elif bien.estado_bien == 'B' %}Bueno
+                                    {% elif bien.estado_bien == 'R' %}Regular
+                                    {% elif bien.estado_bien == 'M' %}Malo
+                                    {% elif bien.estado_bien == 'E' %}RAEE
+                                    {% elif bien.estado_bien == 'C' %}Chatarra
+                                    {% endif %}
+                                </span>
+                            </span>
                         </div>
                     </div>
                     
-                    <div class="info-item">
-                        <div class="info-label">Oficina</div>
-                        <div class="info-value">
-                            {{ bien.oficina.nombre }}
-                            <br><small class="text-muted">{{ bien.responsable_actual|default:"Sin responsable" }}</small>
+                    <div>
+                        <div class="info-item">
+                            <span class="info-label">Catálogo SBN:</span>
+                            <span class="info-value">{{ bien.catalogo.codigo }}</span>
                         </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Oficina:</span>
+                            <span class="info-value">{{ bien.oficina.nombre }}</span>
+                        </div>
+                        
+                        {% if bien.oficina.responsable %}
+                        <div class="info-item">
+                            <span class="info-label">Responsable:</span>
+                            <span class="info-value">{{ bien.oficina.responsable }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    
-                    {% if bien.marca %}
-                    <div class="info-item">
-                        <div class="info-label">Marca</div>
-                        <div class="info-value">{{ bien.marca }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if bien.modelo %}
-                    <div class="info-item">
-                        <div class="info-label">Modelo</div>
-                        <div class="info-value">{{ bien.modelo }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if bien.color %}
-                    <div class="info-item">
-                        <div class="info-label">Color</div>
-                        <div class="info-value">{{ bien.color }}</div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             
-            <!-- Información técnica -->
-            {% if bien.serie or bien.dimension or bien.es_vehiculo %}
+            <!-- Características -->
+            {% if bien.marca or bien.modelo or bien.color or bien.serie or bien.dimension %}
             <div class="info-section">
-                <h3 class="section-title"><i class="fas fa-cogs"></i> Información Técnica</h3>
+                <h3 class="section-title">🏷️ Características</h3>
                 <div class="info-grid">
-                    {% if bien.serie %}
-                    <div class="info-item">
-                        <div class="info-label">Número de Serie</div>
-                        <div class="info-value">{{ bien.serie }}</div>
+                    <div>
+                        {% if bien.marca %}
+                        <div class="info-item">
+                            <span class="info-label">Marca:</span>
+                            <span class="info-value">{{ bien.marca }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if bien.modelo %}
+                        <div class="info-item">
+                            <span class="info-label">Modelo:</span>
+                            <span class="info-value">{{ bien.modelo }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if bien.color %}
+                        <div class="info-item">
+                            <span class="info-label">Color:</span>
+                            <span class="info-value">{{ bien.color }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                     
-                    {% if bien.dimension %}
-                    <div class="info-item">
-                        <div class="info-label">Dimensiones</div>
-                        <div class="info-value">{{ bien.dimension }}</div>
+                    <div>
+                        {% if bien.serie %}
+                        <div class="info-item">
+                            <span class="info-label">Número de Serie:</span>
+                            <span class="info-value">{{ bien.serie }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if bien.dimension %}
+                        <div class="info-item">
+                            <span class="info-label">Dimensiones:</span>
+                            <span class="info-value">{{ bien.dimension }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                    
-                    {% if bien.placa %}
-                    <div class="info-item">
-                        <div class="info-label">Placa</div>
-                        <div class="info-value">{{ bien.placa }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Información Financiera -->
+            {% if bien.fecha_adquisicion or bien.valor_adquisicion %}
+            <div class="info-section">
+                <h3 class="section-title">💰 Información Financiera</h3>
+                <div class="info-grid">
+                    <div>
+                        {% if bien.fecha_adquisicion %}
+                        <div class="info-item">
+                            <span class="info-label">Fecha de Adquisición:</span>
+                            <span class="info-value">{{ bien.fecha_adquisicion|date:"d/m/Y" }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if bien.valor_adquisicion %}
+                        <div class="info-item">
+                            <span class="info-label">Valor de Adquisición:</span>
+                            <span class="info-value currency">S/ {{ bien.valor_adquisicion|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                    
-                    {% if bien.matricula %}
-                    <div class="info-item">
-                        <div class="info-label">Matrícula</div>
-                        <div class="info-value">{{ bien.matricula }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Información de Vehículo -->
+            {% if bien.placa or bien.matricula or bien.nro_motor or bien.nro_chasis %}
+            <div class="info-section">
+                <h3 class="section-title">🚗 Información de Vehículo</h3>
+                <div class="vehicle-info">
+                    <div class="info-grid">
+                        <div>
+                            {% if bien.placa %}
+                            <div class="info-item">
+                                <span class="info-label">Placa:</span>
+                                <span class="info-value"><strong>{{ bien.placa }}</strong></span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if bien.matricula %}
+                            <div class="info-item">
+                                <span class="info-label">Matrícula:</span>
+                                <span class="info-value">{{ bien.matricula }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            {% if bien.nro_motor %}
+                            <div class="info-item">
+                                <span class="info-label">Número de Motor:</span>
+                                <span class="info-value">{{ bien.nro_motor }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if bien.nro_chasis %}
+                            <div class="info-item">
+                                <span class="info-label">Número de Chasis:</span>
+                                <span class="info-value">{{ bien.nro_chasis }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
-                    
-                    {% if bien.nro_motor %}
-                    <div class="info-item">
-                        <div class="info-label">Número de Motor</div>
-                        <div class="info-value">{{ bien.nro_motor }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if bien.nro_chasis %}
-                    <div class="info-item">
-                        <div class="info-label">Número de Chasis</div>
-                        <div class="info-value">{{ bien.nro_chasis }}</div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -308,28 +381,19 @@
             <!-- Código QR -->
             {% if bien.qr_code %}
             <div class="info-section">
-                <h3 class="section-title"><i class="fas fa-qrcode"></i> Código QR</h3>
+                <h3 class="section-title">📱 Código QR</h3>
                 <div class="qr-section">
-                    <div class="qr-code-display">
-                        <img src="{% url 'bienes:qr_image' bien.pk %}" alt="Código QR" style="max-width: 200px;">
-                    </div>
-                    <div class="mt-3">
-                        <p><strong>URL Pública:</strong></p>
-                        <div class="input-group">
-                            <input type="text" class="form-control" value="{{ bien.url_qr }}" readonly id="qrUrl">
-                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('qrUrl')">
-                                <i class="fas fa-copy"></i> Copiar
-                            </button>
-                        </div>
-                        <div class="mt-2">
-                            <a href="{{ bien.url_qr }}" target="_blank" class="btn btn-primary">
-                                <i class="fas fa-external-link-alt"></i> Abrir Vista Pública
-                            </a>
-                            <a href="{% url 'bienes:qr_mobile' bien.qr_code %}" target="_blank" class="btn btn-success">
-                                <i class="fas fa-mobile-alt"></i> Vista Móvil
-                            </a>
-                        </div>
-                    </div>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ bien.url_qr|urlencode }}" 
+                         alt="QR Code" 
+                         class="qr-code"
+                         style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; background: white;">
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Código:</strong> {{ bien.qr_code }}<br>
+                        {% if bien.url_qr %}
+                            <strong>URL:</strong> <a href="{{ bien.url_qr }}" target="_blank">{{ bien.url_qr }}</a>
+                        {% endif %}
+                    </p>
                 </div>
             </div>
             {% endif %}
@@ -337,104 +401,100 @@
             <!-- Observaciones -->
             {% if bien.observaciones %}
             <div class="info-section">
-                <h3 class="section-title"><i class="fas fa-sticky-note"></i> Observaciones</h3>
-                <div class="info-item">
-                    <div class="info-value">{{ bien.observaciones|linebreaks }}</div>
+                <h3 class="section-title">📝 Observaciones</h3>
+                <div class="observations">
+                    {{ bien.observaciones|linebreaks }}
                 </div>
             </div>
             {% endif %}
+            
+            <!-- Información de Registro -->
+            <div class="info-section">
+                <h3 class="section-title">📅 Registro</h3>
+                <div class="info-grid">
+                    <div>
+                        <div class="info-item">
+                            <span class="info-label">Creado:</span>
+                            <span class="info-value">{{ bien.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        
+                        {% if bien.created_by %}
+                        <div class="info-item">
+                            <span class="info-label">Creado por:</span>
+                            <span class="info-value">{{ bien.created_by.get_full_name|default:bien.created_by.username }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <div class="info-item">
+                            <span class="info-label">Actualizado:</span>
+                            <span class="info-value">{{ bien.updated_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        
+                        {% if bien.updated_by %}
+                        <div class="info-item">
+                            <span class="info-label">Actualizado por:</span>
+                            <span class="info-value">{{ bien.updated_by.get_full_name|default:bien.updated_by.username }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <!-- Historial de estados -->
-    {% if historial_estados %}
-    <div class="bien-card">
-        <div class="bien-body">
-            <h3 class="section-title"><i class="fas fa-history"></i> Historial de Estados</h3>
-            {% for historial in historial_estados %}
-            <div class="historial-item">
-                <div class="historial-fecha">
-                    {{ historial.created_at|date:"d/m/Y H:i" }} - {{ historial.created_by.get_full_name|default:historial.created_by.username }}
-                </div>
-                <div class="historial-cambio">
-                    <span class="estado-badge estado-{{ historial.estado_anterior }}">{{ historial.get_estado_anterior_display }}</span>
-                    <i class="fas fa-arrow-right mx-2"></i>
-                    <span class="estado-badge estado-{{ historial.estado_nuevo }}">{{ historial.get_estado_nuevo_display }}</span>
-                </div>
-                {% if historial.observaciones %}
-                <div class="historial-obs">{{ historial.observaciones }}</div>
-                {% endif %}
-                {% if historial.ubicacion_gps %}
-                <div class="historial-obs">
-                    <i class="fas fa-map-marker-alt"></i> GPS: {{ historial.ubicacion_gps }}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Acciones -->
-    <div class="actions-section">
-        <h5><i class="fas fa-tools"></i> Acciones</h5>
-        <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-warning btn-action">
-            <i class="fas fa-edit"></i> Editar Bien
-        </a>
-        <a href="{% url 'bienes:list' %}" class="btn btn-secondary btn-action">
-            <i class="fas fa-list"></i> Volver al Listado
-        </a>
-        {% if perms.bienes.delete_bienpatrimonial %}
-        <button type="button" class="btn btn-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteModal">
-            <i class="fas fa-trash"></i> Eliminar Bien
-        </button>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Modal de confirmación de eliminación -->
-{% if perms.bienes.delete_bienpatrimonial %}
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Está seguro que desea eliminar el bien patrimonial <strong>{{ bien.codigo_patrimonial }}</strong>?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a href="{% url 'bienes:delete' bien.pk %}" class="btn btn-danger">Eliminar</a>
-            </div>
+        
+        <!-- Actions -->
+        <div class="actions-bar">
+            <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-primary">
+                ✏️ Editar
+            </a>
+            
+            <a href="{% url 'bienes:list' %}" class="btn btn-secondary">
+                📋 Volver a Lista
+            </a>
+            
+            {% if bien.qr_code %}
+            <a href="{% url 'qr_public' bien.qr_code %}" class="btn btn-info" target="_blank">
+                📱 Ver QR
+            </a>
+            
+            <a href="{% url 'reportes:configurador_zebra' %}?bien_id={{ bien.id }}" class="btn btn-warning">
+                🖨️ Imprimir QR
+            </a>
+            
+            <a href="{% url 'reportes:vista_previa_sticker' bien.id %}" class="btn btn-secondary" target="_blank">
+                🏷️ Sticker ZPL
+            </a>
+            {% endif %}
+            
+            <button onclick="window.print()" class="btn btn-warning">
+                🖨️ Imprimir
+            </button>
         </div>
     </div>
 </div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function copyToClipboard(elementId) {
-        const element = document.getElementById(elementId);
-        element.select();
-        element.setSelectionRange(0, 99999);
-        document.execCommand('copy');
-        
-        // Mostrar feedback
-        const button = element.nextElementSibling;
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-check"></i> Copiado';
-        button.classList.remove('btn-outline-secondary');
-        button.classList.add('btn-success');
-        
-        setTimeout(() => {
-            button.innerHTML = originalText;
-            button.classList.remove('btn-success');
-            button.classList.add('btn-outline-secondary');
-        }, 2000);
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Funcionalidad para copiar códigos al portapapeles
+        document.querySelectorAll('.info-value').forEach(element => {
+            if (element.textContent.includes('-') || element.textContent.length > 8) {
+                element.style.cursor = 'pointer';
+                element.title = 'Click para copiar';
+                element.addEventListener('click', function() {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(this.textContent.trim()).then(() => {
+                            this.style.background = '#d4edda';
+                            setTimeout(() => {
+                                this.style.background = '';
+                            }, 1500);
+                        }, 1500);
+                    }
+                });
+            }
+        });
+    });
 </script>
 {% endblock %}

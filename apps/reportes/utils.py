@@ -1,4 +1,5 @@
 from django.db.models import Q, Count, Sum, Avg
+from django.db.models.functions import Extract
 from django.utils import timezone
 from apps.bienes.models import BienPatrimonial
 from apps.catalogo.models import Catalogo
@@ -287,9 +288,9 @@ class FiltroAvanzado:
             fecha_mas_reciente=queryset.order_by('-created_at').first().created_at if queryset.exists() else None
         )
         
-        # Estadísticas por año de registro
-        por_año = list(queryset.extra(
-            select={'año': 'EXTRACT(year FROM created_at)'}
+        # Estadísticas por año de registro (compatible con SQLite)
+        por_año = list(queryset.annotate(
+            año=Extract('created_at', 'year')
         ).values('año').annotate(
             total=Count('id')
         ).order_by('-año')[:5])  # Últimos 5 años
@@ -355,9 +356,9 @@ class GeneradorEstadisticas:
         
         indicadores['top_oficinas'] = top_oficinas
         
-        # Tendencias por año
-        tendencias = list(queryset.extra(
-            select={'año': 'EXTRACT(year FROM created_at)'}
+        # Tendencias por año (compatible con SQLite)
+        tendencias = list(queryset.annotate(
+            año=Extract('created_at', 'year')
         ).values('año').annotate(
             total=Count('id')
         ).order_by('año'))

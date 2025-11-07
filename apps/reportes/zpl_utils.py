@@ -14,8 +14,77 @@ logger = logging.getLogger(__name__)
 class ConfiguracionSticker:
     """Configuración para stickers ZPL"""
     
-    # Tamaños predefinidos (en dots para 203 DPI)
+    # Configuraciones específicas para impresoras Zebra
+    IMPRESORAS_ZEBRA = {
+        'ZD220': {
+            'ancho_maximo_mm': 112,
+            'ancho_maximo_dots_203dpi': 897,  # 112mm * 203dpi / 25.4mm
+            'ancho_maximo_dots_300dpi': 1323, # 112mm * 300dpi / 25.4mm
+            'descripcion': 'Zebra ZD220 - Etiquetas hasta 112mm'
+        },
+        'ZD410': {
+            'ancho_maximo_mm': 112,
+            'ancho_maximo_dots_203dpi': 897,
+            'ancho_maximo_dots_300dpi': 1323,
+            'descripcion': 'Zebra ZD410 - Tickets hasta 112mm'
+        },
+        'ZD411_203': {
+            'ancho_maximo_mm': 56,
+            'ancho_maximo_dots_203dpi': 449,  # 56mm * 203dpi / 25.4mm
+            'descripcion': 'Zebra ZD411 (203 DPI) - Tickets hasta 56mm'
+        },
+        'ZD411_300': {
+            'ancho_maximo_mm': 54,
+            'ancho_maximo_dots_300dpi': 638,  # 54mm * 300dpi / 25.4mm
+            'descripcion': 'Zebra ZD411 (300 DPI) - Tickets hasta 54mm'
+        }
+    }
+    
+    # Tamaños predefinidos optimizados para impresoras Zebra
     TAMAÑOS_PREDEFINIDOS = {
+        # Para ZD411 (tickets pequeños)
+        'ticket_pequeño_203': {
+            'ancho': 400,  # ~50mm a 203 DPI
+            'alto': 200,   # ~25mm a 203 DPI
+            'descripcion': 'Ticket Pequeño ZD411 (50x25mm) - 203 DPI',
+            'impresora_recomendada': 'ZD411_203'
+        },
+        'ticket_pequeño_300': {
+            'ancho': 590,  # ~50mm a 300 DPI
+            'alto': 295,   # ~25mm a 300 DPI
+            'descripcion': 'Ticket Pequeño ZD411 (50x25mm) - 300 DPI',
+            'impresora_recomendada': 'ZD411_300'
+        },
+        
+        # Para ZD220/ZD410 (etiquetas medianas)
+        'etiqueta_mediana_203': {
+            'ancho': 600,  # ~75mm a 203 DPI
+            'alto': 400,   # ~50mm a 203 DPI
+            'descripcion': 'Etiqueta Mediana ZD220/ZD410 (75x50mm) - 203 DPI',
+            'impresora_recomendada': 'ZD220'
+        },
+        'etiqueta_mediana_300': {
+            'ancho': 885,  # ~75mm a 300 DPI
+            'alto': 590,   # ~50mm a 300 DPI
+            'descripcion': 'Etiqueta Mediana ZD220/ZD410 (75x50mm) - 300 DPI',
+            'impresora_recomendada': 'ZD220'
+        },
+        
+        # Para ZD220/ZD410 (etiquetas grandes)
+        'etiqueta_grande_203': {
+            'ancho': 800,  # ~100mm a 203 DPI
+            'alto': 600,   # ~75mm a 203 DPI
+            'descripcion': 'Etiqueta Grande ZD220/ZD410 (100x75mm) - 203 DPI',
+            'impresora_recomendada': 'ZD220'
+        },
+        'etiqueta_grande_300': {
+            'ancho': 1181, # ~100mm a 300 DPI
+            'alto': 885,   # ~75mm a 300 DPI
+            'descripcion': 'Etiqueta Grande ZD220/ZD410 (100x75mm) - 300 DPI',
+            'impresora_recomendada': 'ZD220'
+        },
+        
+        # Compatibilidad con tamaños anteriores
         'pequeño': {
             'ancho': 300,  # ~1.5 pulgadas
             'alto': 200,   # ~1 pulgada
@@ -38,25 +107,32 @@ class ConfiguracionSticker:
         }
     }
     
-    def __init__(self, tamaño='mediano', **kwargs):
+    def __init__(self, tamaño='mediano', impresora=None, dpi=203, **kwargs):
         """
         Inicializa la configuración del sticker
         
         Args:
             tamaño: Tamaño predefinido o 'personalizado'
+            impresora: Modelo de impresora Zebra (ZD220, ZD410, ZD411_203, ZD411_300)
+            dpi: DPI de la impresora (203 o 300)
             **kwargs: Parámetros personalizados
         """
+        self.impresora = impresora
+        self.dpi = dpi
+        
         if tamaño in self.TAMAÑOS_PREDEFINIDOS:
             config = self.TAMAÑOS_PREDEFINIDOS[tamaño].copy()
             self.ancho = config['ancho']
             self.alto = config['alto']
+            self.impresora_recomendada = config.get('impresora_recomendada')
         else:
             self.ancho = kwargs.get('ancho', 400)
             self.alto = kwargs.get('alto', 300)
+            self.impresora_recomendada = None
         
         # Configuración general
-        self.margen = kwargs.get('margen', 20)
-        self.espaciado_linea = kwargs.get('espaciado_linea', 25)
+        self.margen = kwargs.get('margen', 15 if self.ancho < 500 else 20)
+        self.espaciado_linea = kwargs.get('espaciado_linea', 20 if self.ancho < 500 else 25)
         
         # Configuración del QR
         self.incluir_qr = kwargs.get('incluir_qr', True)
@@ -99,11 +175,12 @@ class ConfiguracionSticker:
         """Valida la configuración"""
         errores = []
         
-        if self.ancho < 200 or self.ancho > 1200:
-            errores.append("El ancho debe estar entre 200 y 1200 dots")
+        # Validaciones básicas
+        if self.ancho < 200 or self.ancho > 1400:
+            errores.append("El ancho debe estar entre 200 y 1400 dots")
         
-        if self.alto < 150 or self.alto > 800:
-            errores.append("El alto debe estar entre 150 y 800 dots")
+        if self.alto < 150 or self.alto > 1000:
+            errores.append("El alto debe estar entre 150 y 1000 dots")
         
         if self.margen < 5 or self.margen > 50:
             errores.append("El margen debe estar entre 5 y 50 dots")
@@ -111,7 +188,156 @@ class ConfiguracionSticker:
         if self.tamaño_qr > min(self.ancho, self.alto) - 2*self.margen:
             errores.append("El tamaño del QR es muy grande para el sticker")
         
+        # Validaciones específicas para impresoras Zebra
+        if self.impresora and self.impresora in self.IMPRESORAS_ZEBRA:
+            config_impresora = self.IMPRESORAS_ZEBRA[self.impresora]
+            
+            # Verificar ancho máximo según DPI
+            if self.dpi == 203 and 'ancho_maximo_dots_203dpi' in config_impresora:
+                ancho_max = config_impresora['ancho_maximo_dots_203dpi']
+                if self.ancho > ancho_max:
+                    errores.append(f"El ancho ({self.ancho} dots) excede el máximo para {self.impresora} a 203 DPI ({ancho_max} dots)")
+            
+            elif self.dpi == 300 and 'ancho_maximo_dots_300dpi' in config_impresora:
+                ancho_max = config_impresora['ancho_maximo_dots_300dpi']
+                if self.ancho > ancho_max:
+                    errores.append(f"El ancho ({self.ancho} dots) excede el máximo para {self.impresora} a 300 DPI ({ancho_max} dots)")
+        
         return errores
+    
+    def es_compatible_con_impresora(self, impresora, dpi=203):
+        """
+        Verifica si la configuración es compatible con una impresora específica
+        
+        Args:
+            impresora: Modelo de impresora
+            dpi: DPI de la impresora
+            
+        Returns:
+            tuple: (es_compatible, mensaje)
+        """
+        if impresora not in self.IMPRESORAS_ZEBRA:
+            return False, f"Impresora {impresora} no reconocida"
+        
+        config_impresora = self.IMPRESORAS_ZEBRA[impresora]
+        
+        # Verificar ancho máximo
+        if dpi == 203 and 'ancho_maximo_dots_203dpi' in config_impresora:
+            ancho_max = config_impresora['ancho_maximo_dots_203dpi']
+            if self.ancho > ancho_max:
+                ancho_mm = round(self.ancho * 25.4 / 203, 1)
+                return False, f"Ancho {ancho_mm}mm excede el máximo de {config_impresora['ancho_maximo_mm']}mm para {impresora}"
+        
+        elif dpi == 300 and 'ancho_maximo_dots_300dpi' in config_impresora:
+            ancho_max = config_impresora['ancho_maximo_dots_300dpi']
+            if self.ancho > ancho_max:
+                ancho_mm = round(self.ancho * 25.4 / 300, 1)
+                return False, f"Ancho {ancho_mm}mm excede el máximo de {config_impresora['ancho_maximo_mm']}mm para {impresora}"
+        
+        return True, f"Compatible con {impresora} a {dpi} DPI"
+    
+    def obtener_dimensiones_mm(self):
+        """
+        Obtiene las dimensiones en milímetros
+        
+        Returns:
+            dict: Dimensiones en mm
+        """
+        factor_conversion = 25.4 / self.dpi
+        
+        return {
+            'ancho_mm': round(self.ancho * factor_conversion, 1),
+            'alto_mm': round(self.alto * factor_conversion, 1),
+            'ancho_dots': self.ancho,
+            'alto_dots': self.alto,
+            'dpi': self.dpi
+        }
+    
+    @classmethod
+    def crear_para_impresora(cls, impresora, tamaño_mm=None, **kwargs):
+        """
+        Crea una configuración optimizada para una impresora específica
+        
+        Args:
+            impresora: Modelo de impresora (ZD220, ZD410, ZD411_203, ZD411_300)
+            tamaño_mm: Tupla (ancho_mm, alto_mm) o None para usar tamaño recomendado
+            **kwargs: Parámetros adicionales
+            
+        Returns:
+            ConfiguracionSticker: Configuración optimizada
+        """
+        if impresora not in cls.IMPRESORAS_ZEBRA:
+            raise ValueError(f"Impresora {impresora} no reconocida")
+        
+        config_impresora = cls.IMPRESORAS_ZEBRA[impresora]
+        
+        # Determinar DPI
+        if impresora.endswith('_300'):
+            dpi = 300
+            ancho_max_dots = config_impresora.get('ancho_maximo_dots_300dpi', 1200)
+        else:
+            dpi = 203
+            ancho_max_dots = config_impresora.get('ancho_maximo_dots_203dpi', 900)
+        
+        # Calcular dimensiones
+        if tamaño_mm:
+            ancho_mm, alto_mm = tamaño_mm
+            ancho_dots = int(ancho_mm * dpi / 25.4)
+            alto_dots = int(alto_mm * dpi / 25.4)
+        else:
+            # Usar tamaño recomendado según la impresora
+            if impresora.startswith('ZD411'):
+                # Ticket pequeño para ZD411
+                ancho_dots = min(400, ancho_max_dots - 50)
+                alto_dots = 250
+            else:
+                # Etiqueta mediana para ZD220/ZD410
+                ancho_dots = min(600, ancho_max_dots - 50)
+                alto_dots = 400
+        
+        # Validar que no exceda el ancho máximo
+        if ancho_dots > ancho_max_dots:
+            ancho_dots = ancho_max_dots - 20  # Margen de seguridad
+        
+        # Configuración optimizada según el tamaño
+        if ancho_dots < 500:
+            # Configuración para tickets pequeños
+            config_kwargs = {
+                'margen': 10,
+                'tamaño_qr': min(80, alto_dots - 40),
+                'posicion_qr': 'izquierda',
+                'altura_titulo': 20,
+                'altura_texto': 15,
+                'altura_pequeña': 12,
+                'campos_incluir': ['codigo_patrimonial', 'denominacion', 'oficina', 'estado'],
+                'incluir_fecha': False,
+                'incluir_linea_separadora': False
+            }
+        else:
+            # Configuración para etiquetas medianas/grandes
+            config_kwargs = {
+                'margen': 15,
+                'tamaño_qr': min(120, alto_dots - 60),
+                'posicion_qr': 'izquierda',
+                'altura_titulo': 25,
+                'altura_texto': 18,
+                'altura_pequeña': 14,
+                'campos_incluir': ['codigo_patrimonial', 'denominacion', 'oficina', 'estado', 'marca_modelo', 'serie'],
+                'incluir_fecha': True,
+                'incluir_linea_separadora': True
+            }
+        
+        # Combinar con kwargs proporcionados
+        config_kwargs.update(kwargs)
+        
+        return cls(
+            tamaño='personalizado',
+            impresora=impresora,
+            dpi=dpi,
+            ancho=ancho_dots,
+            alto=alto_dots,
+            **config_kwargs
+        )
     
     def calcular_area_texto(self):
         """Calcula el área disponible para texto"""

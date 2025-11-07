@@ -10,9 +10,17 @@ class ReactAppView(TemplateView):
 
 def home_view(request):
     """
-    Home view that redirects to React app or shows login
+    Home view that shows basic information
     """
     if request.user.is_authenticated:
-        return render(request, 'react_app.html')
+        # Estadísticas básicas sin consultas complejas
+        from apps.bienes.models import BienPatrimonial
+        from apps.oficinas.models import Oficina
+        
+        context = {
+            'total_bienes': BienPatrimonial.objects.count(),
+            'total_oficinas': Oficina.objects.filter(estado=True).count(),
+        }
+        return render(request, 'home.html', context)
     else:
         return render(request, 'home.html')

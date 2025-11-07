@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Catálogo SBN - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .catalog-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px 0;
+        margin-bottom: 30px;
+    }
+    
+    .catalog-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    
+    .catalog-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+    }
+    
+    .catalog-actions {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .catalog-table {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table-header {
+        background: #f8f9fa;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        flex: 1;
+        min-width: 250px;
+        padding: 10px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+    
+    .table th,
+    .table td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        position: sticky;
+        top: 0;
+    }
+    
+    .table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .pagination-container {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+    }
+    
+    .pagination {
+        display: flex;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #007bff;
+        border: 1px solid #dee2e6;
+    }
+    
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    .stats-info {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="catalog-header">
+    <div class="container">
+        <h1>Catálogo Oficial SBN</h1>
+        <p>Gestión del Catálogo del Sistema de Bienes Nacionales</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Acciones principales -->
+    <div class="catalog-actions">
+        <div class="btn-group">
+            <a href="{% url 'catalogo:importar' %}" class="btn btn-success">
+                📥 Importar desde Excel
+            </a>
+            <a href="{% url 'catalogo:agregar' %}" class="btn btn-primary">
+                ➕ Agregar Catálogo
+            </a>
+            <a href="{% url 'catalogo:exportar' %}" class="btn btn-info">
+                📤 Exportar Datos
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de catálogos -->
+    <div class="catalog-table">
+        <div class="table-header">
+            <form method="GET" class="search-form">
+                <input type="text" 
+                       name="q" 
+                       value="{{ request.GET.q }}" 
+                       placeholder="Buscar por código, denominación o grupo..." 
+                       class="search-input">
+                <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+                {% if request.GET.q %}
+                    <a href="{% url 'catalogo:lista' %}" class="btn btn-secondary">❌ Limpiar</a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if catalogos %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Denominación</th>
+                            <th>Grupo</th>
+                            <th>Clase</th>
+                            <th>Resolución</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for catalogo in catalogos %}
+                        <tr>
+                            <td><strong>{{ catalogo.codigo }}</strong></td>
+                            <td>{{ catalogo.denominacion }}</td>
+                            <td>{{ catalogo.grupo|default:"-" }}</td>
+                            <td>{{ catalogo.clase|default:"-" }}</td>
+                            <td>{{ catalogo.resolucion|default:"-" }}</td>
+                            <td>
+                                {% if catalogo.estado == 'ACTIVO' %}
+                                    <span class="badge badge-success">{{ catalogo.estado }}</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ catalogo.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'catalogo:detalle' catalogo.pk %}" 
+                                   class="btn btn-sm btn-info" title="Ver detalles">👁️</a>
+                                <a href="{% url 'catalogo:editar' catalogo.pk %}" 
+                                   class="btn btn-sm btn-primary" title="Editar">✏️</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <div class="pagination-container">
+                <div class="stats-info">
+                    Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ paginator.count }} registros
+                </div>
+                
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li><a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page=1">« Primera</a></li>
+                            <li><a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}">‹ Anterior</a></li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li><span class="current">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li><a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li><a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}">Siguiente ›</a></li>
+                            <li><a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Última »</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i>📋</i>
+                <h3>No hay catálogos registrados</h3>
+                {% if request.GET.q %}
+                    <p>No se encontraron resultados para "{{ request.GET.q }}"</p>
+                    <a href="{% url 'catalogo:lista' %}" class="btn btn-primary">Ver todos los catálogos</a>
+                {% else %}
+                    <p>Comienza importando el catálogo oficial desde un archivo Excel</p>
+                    <a href="{% url 'catalogo:importar' %}" class="btn btn-success">Importar Catálogo</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit search form on Enter
+    document.querySelector('.search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.target.closest('form').submit();
+        }
+    });
+    
+    // Highlight search terms
+    const searchTerm = "{{ request.GET.q|escapejs }}";
+    if (searchTerm) {
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        document.querySelectorAll('td').forEach(cell => {
+            if (cell.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
+                cell.innerHTML = cell.innerHTML.replace(regex, '<mark>$1</mark>');
+            }
+        });
+    }
+</script>
+{% endblock %}

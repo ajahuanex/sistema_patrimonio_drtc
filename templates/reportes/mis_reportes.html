@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mis Reportes - Sistema de Patrimonio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-file-alt"></i>
+                        Mis Reportes
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'reportes:generar_reporte' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Nuevo Reporte
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if reportes %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Tipo</th>
+                                        <th>Formato</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                        <th>Registros</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reporte in reportes %}
+                                    <tr>
+                                        <td>{{ reporte.nombre }}</td>
+                                        <td>{{ reporte.get_tipo_reporte_display }}</td>
+                                        <td>{{ reporte.get_formato_display }}</td>
+                                        <td>
+                                            {% if reporte.estado == 'COMPLETADO' %}
+                                                <span class="badge badge-success">{{ reporte.get_estado_display }}</span>
+                                            {% elif reporte.estado == 'EN_PROCESO' %}
+                                                <span class="badge badge-warning">{{ reporte.get_estado_display }}</span>
+                                            {% elif reporte.estado == 'ERROR' %}
+                                                <span class="badge badge-danger">{{ reporte.get_estado_display }}</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{{ reporte.get_estado_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ reporte.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ reporte.total_registros|default:"-" }}</td>
+                                        <td>
+                                            {% if reporte.puede_descargarse %}
+                                                <a href="{% url 'reportes:descargar_reporte' reporte.pk %}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'reportes:eliminar_reporte' reporte.pk %}" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        {% if reportes.has_other_pages %}
+                            <nav aria-label="Paginación de reportes">
+                                <ul class="pagination justify-content-center">
+                                    {% if reportes.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ reportes.previous_page_number }}">Anterior</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in reportes.paginator.page_range %}
+                                        {% if reportes.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if reportes.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ reportes.next_page_number }}">Siguiente</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            No tienes reportes generados.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

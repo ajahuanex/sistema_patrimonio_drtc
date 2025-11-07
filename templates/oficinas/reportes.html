@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reportes de Oficinas - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 20px;
+}
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.filter-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-bar"></i>
+                    Reportes de Oficinas
+                </h1>
+                <div>
+                    <a href="{% url 'oficinas:lista' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="text-center">
+                    <i class="fas fa-building fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ estadisticas.total_oficinas }}</h3>
+                    <p class="mb-0">Total Oficinas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ estadisticas.oficinas_activas }}</h3>
+                    <p class="mb-0">Oficinas Activas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-pause-circle fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ estadisticas.oficinas_inactivas }}</h3>
+                    <p class="mb-0">Oficinas Inactivas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-box fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ estadisticas.total_bienes }}</h3>
+                    <p class="mb-0">Total Bienes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de Reporte -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter"></i>
+                        Filtros de Reporte
+                    </h5>
+                </div>
+                <div class="card-body filter-section">
+                    <form id="filtros-reporte" method="get">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Estado:</label>
+                                    <select name="estado" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="True" {% if request.GET.estado == 'True' %}selected{% endif %}>Activas</option>
+                                        <option value="False" {% if request.GET.estado == 'False' %}selected{% endif %}>Inactivas</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Responsable:</label>
+                                    <input type="text" name="responsable" class="form-control" 
+                                           value="{{ request.GET.responsable }}" 
+                                           placeholder="Buscar por responsable...">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Fecha desde:</label>
+                                    <input type="date" name="fecha_desde" class="form-control" 
+                                           value="{{ request.GET.fecha_desde }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Fecha hasta:</label>
+                                    <input type="date" name="fecha_hasta" class="form-control" 
+                                           value="{{ request.GET.fecha_hasta }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Búsqueda general:</label>
+                                    <input type="text" name="q" class="form-control" 
+                                           value="{{ request.GET.q }}" 
+                                           placeholder="Código, nombre, descripción...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i> Aplicar Filtros
+                                        </button>
+                                        <a href="{% url 'oficinas:reportes' %}" class="btn btn-secondary">
+                                            <i class="fas fa-times"></i> Limpiar
+                                        </a>
+                                        <button type="button" class="btn btn-success" onclick="exportarReporte('excel')">
+                                            <i class="fas fa-file-excel"></i> Excel
+                                        </button>
+                                        <button type="button" class="btn btn-danger" onclick="exportarReporte('pdf')">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Análisis -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie"></i>
+                        Distribución por Estado
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="estadoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i>
+                        Bienes por Oficina (Top 10)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="bienesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Datos Filtrados -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table"></i>
+                        Datos del Reporte
+                        {% if oficinas_filtradas %}
+                            <span class="badge bg-primary ms-2">{{ oficinas_filtradas|length }} oficinas</span>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if oficinas_filtradas %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Responsable</th>
+                                        <th>Estado</th>
+                                        <th>Bienes</th>
+                                        <th>Fecha Registro</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for oficina in oficinas_filtradas %}
+                                    <tr>
+                                        <td><strong>{{ oficina.codigo }}</strong></td>
+                                        <td>{{ oficina.nombre }}</td>
+                                        <td>{{ oficina.responsable }}</td>
+                                        <td>
+                                            {% if oficina.estado %}
+                                                <span class="badge bg-success">Activa</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactiva</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ oficina.bienes_count|default:0 }}</span>
+                                        </td>
+                                        <td>{{ oficina.created_at|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'oficinas:detalle' oficina.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No se encontraron oficinas</h5>
+                            <p class="text-muted">
+                                {% if request.GET.q or request.GET.estado or request.GET.responsable %}
+                                    No hay oficinas que coincidan con los filtros aplicados.
+                                {% else %}
+                                    Aplique filtros para generar el reporte.
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Datos para gráficos
+const estadisticasData = {
+    activas: {{ estadisticas.oficinas_activas }},
+    inactivas: {{ estadisticas.oficinas_inactivas }},
+    bienesPorOficina: {{ graficos.bienes_por_oficina|safe }}
+};
+
+// Gráfico de Estado
+const estadoCtx = document.getElementById('estadoChart').getContext('2d');
+new Chart(estadoCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Activas', 'Inactivas'],
+        datasets: [{
+            data: [estadisticasData.activas, estadisticasData.inactivas],
+            backgroundColor: ['#28a745', '#6c757d'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Gráfico de Bienes por Oficina
+const bienesCtx = document.getElementById('bienesChart').getContext('2d');
+new Chart(bienesCtx, {
+    type: 'bar',
+    data: {
+        labels: estadisticasData.bienesPorOficina.map(item => item.codigo),
+        datasets: [{
+            label: 'Cantidad de Bienes',
+            data: estadisticasData.bienesPorOficina.map(item => item.total_bienes),
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Función para exportar reportes
+function exportarReporte(formato) {
+    const form = document.getElementById('filtros-reporte');
+    const formData = new FormData(form);
+    
+    // Agregar formato
+    formData.append('formato', formato);
+    
+    // Crear URL con parámetros
+    const params = new URLSearchParams();
+    for (let [key, value] of formData.entries()) {
+        if (value) params.append(key, value);
+    }
+    
+    // Redirigir a la URL de exportación
+    window.open(`{% url 'oficinas:exportar_reporte' %}?${params.toString()}`, '_blank');
+}
+</script>
+{% endblock %}

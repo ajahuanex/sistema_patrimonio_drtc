@@ -1,234 +1,300 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}{{ bien.codigo_patrimonial }} - Información del Bien{% endblock %}
-
-{% block extra_css %}
-<style>
-    .qr-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-    }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bien.codigo_patrimonial }} - {{ bien.catalogo.denominacion }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
-    .bien-info {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .bien-header {
-        border-bottom: 2px solid #007bff;
-        padding-bottom: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .bien-title {
-        color: #007bff;
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 0;
-    }
-    
-    .bien-subtitle {
-        color: #6c757d;
-        font-size: 1rem;
-        margin: 5px 0 0 0;
-    }
-    
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .info-item {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .info-label {
-        font-weight: bold;
-        color: #495057;
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-    }
-    
-    .info-value {
-        color: #212529;
-        font-size: 1rem;
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-left: 3px solid #007bff;
-    }
-    
-    .estado-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-    }
-    
-    .estado-N { background: #d4edda; color: #155724; }
-    .estado-B { background: #cce5ff; color: #004085; }
-    .estado-R { background: #fff3cd; color: #856404; }
-    .estado-M { background: #f8d7da; color: #721c24; }
-    .estado-E { background: #e2e3e5; color: #383d41; }
-    .estado-C { background: #343a40; color: #ffffff; }
-    
-    .admin-actions {
-        background: #e9ecef;
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 20px;
-    }
-    
-    .btn-admin {
-        margin-right: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .mobile-optimized {
-        font-size: 1.1rem;
-    }
-    
-    @media (max-width: 768px) {
-        .qr-container {
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 10px;
         }
         
-        .info-grid {
-            grid-template-columns: 1fr;
+        .qr-card {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         
-        .bien-title {
-            font-size: 1.3rem;
+        .header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
         }
         
-        .mobile-optimized {
-            font-size: 1.2rem;
+        .code {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
         }
-    }
-</style>
-{% endblock %}
+        
+        .name {
+            font-size: 14px;
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .status {
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .status.N { background: #28a745; }
+        .status.B { background: #007bff; }
+        .status.R { background: #ffc107; color: #333; }
+        .status.M { background: #dc3545; }
+        .status.E { background: #6c757d; }
+        .status.C { background: #343a40; }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            flex: 0 0 35%;
+        }
+        
+        .value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .currency {
+            color: #28a745;
+            font-weight: 700;
+        }
+        
+        .vehicle-section {
+            background: #e3f2fd;
+            margin: 15px -20px 0;
+            padding: 15px 20px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1976d2;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .observations {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .actions {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            text-align: center;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 10px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .empty {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
 
-{% block content %}
-<div class="qr-container">
-    <div class="bien-info">
-        <div class="bien-header">
-            <h1 class="bien-title">{{ bien.codigo_patrimonial }}</h1>
-            <p class="bien-subtitle">{{ bien.denominacion }}</p>
+<body>
+    <div class="qr-card">
+        <!-- Header -->
+        <div class="header">
+            <div class="code">{{ bien.codigo_patrimonial }}</div>
+            <div class="name">{{ bien.catalogo.denominacion }}</div>
         </div>
         
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Estado del Bien</span>
-                <span class="info-value">
-                    <span class="estado-badge estado-{{ bien.estado_bien }}">
-                        {{ bien.estado_bien_texto }}
-                    </span>
-                </span>
+        <!-- Status -->
+        <div class="status {{ bien.estado_bien }}">
+            {% if bien.estado_bien == 'N' %}🆕 NUEVO
+            {% elif bien.estado_bien == 'B' %}✅ BUENO
+            {% elif bien.estado_bien == 'R' %}⚠️ REGULAR
+            {% elif bien.estado_bien == 'M' %}❌ MALO
+            {% elif bien.estado_bien == 'E' %}♻️ RAEE
+            {% elif bien.estado_bien == 'C' %}🗑️ CHATARRA
+            {% endif %}
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Básico -->
+            <div class="info-row">
+                <span class="label">Oficina:</span>
+                <span class="value">{{ bien.oficina.nombre }}</span>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Oficina</span>
-                <span class="info-value">{{ bien.oficina.nombre|default:"No asignada" }}</span>
+            {% if bien.oficina.responsable %}
+            <div class="info-row">
+                <span class="label">Responsable:</span>
+                <span class="value">{{ bien.oficina.responsable }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="info-row">
+                <span class="label">Catálogo:</span>
+                <span class="value">{{ bien.catalogo.codigo }}</span>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Responsable</span>
-                <span class="info-value">{{ bien.responsable_actual|default:"No asignado" }}</span>
-            </div>
-            
+            <!-- Características -->
             {% if bien.marca %}
-            <div class="info-item">
-                <span class="info-label">Marca</span>
-                <span class="info-value">{{ bien.marca }}</span>
+            <div class="info-row">
+                <span class="label">Marca:</span>
+                <span class="value">{{ bien.marca }}</span>
             </div>
             {% endif %}
             
             {% if bien.modelo %}
-            <div class="info-item">
-                <span class="info-label">Modelo</span>
-                <span class="info-value">{{ bien.modelo }}</span>
+            <div class="info-row">
+                <span class="label">Modelo:</span>
+                <span class="value">{{ bien.modelo }}</span>
             </div>
             {% endif %}
             
             {% if bien.serie %}
-            <div class="info-item">
-                <span class="info-label">Serie</span>
-                <span class="info-value">{{ bien.serie }}</span>
-            </div>
-            {% endif %}
-            
-            {% if bien.placa %}
-            <div class="info-item">
-                <span class="info-label">Placa</span>
-                <span class="info-value">{{ bien.placa }}</span>
+            <div class="info-row">
+                <span class="label">Serie:</span>
+                <span class="value">{{ bien.serie }}</span>
             </div>
             {% endif %}
             
             {% if bien.color %}
-            <div class="info-item">
-                <span class="info-label">Color</span>
-                <span class="info-value">{{ bien.color }}</span>
+            <div class="info-row">
+                <span class="label">Color:</span>
+                <span class="value">{{ bien.color }}</span>
             </div>
             {% endif %}
             
-            {% if bien.dimension %}
-            <div class="info-item">
-                <span class="info-label">Dimensión</span>
-                <span class="info-value">{{ bien.dimension }}</span>
+            <!-- Financiero -->
+            {% if bien.fecha_adquisicion %}
+            <div class="info-row">
+                <span class="label">Adquisición:</span>
+                <span class="value">{{ bien.fecha_adquisicion|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+            
+            {% if bien.valor_adquisicion %}
+            <div class="info-row">
+                <span class="label">Valor:</span>
+                <span class="value currency">S/ {{ bien.valor_adquisicion|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            
+            <!-- Vehículo -->
+            {% if bien.placa or bien.matricula or bien.nro_motor %}
+            <div class="vehicle-section">
+                <div class="section-title">🚗 Vehículo</div>
+                
+                {% if bien.placa %}
+                <div class="info-row">
+                    <span class="label">Placa:</span>
+                    <span class="value">{{ bien.placa }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bien.matricula %}
+                <div class="info-row">
+                    <span class="label">Matrícula:</span>
+                    <span class="value">{{ bien.matricula }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bien.nro_motor %}
+                <div class="info-row">
+                    <span class="label">Motor:</span>
+                    <span class="value">{{ bien.nro_motor }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Observaciones -->
+            {% if bien.observaciones %}
+            <div class="observations">
+                <strong>📝 Observaciones:</strong><br>
+                {{ bien.observaciones|truncatewords:20 }}
             </div>
             {% endif %}
         </div>
         
-        {% if bien.observaciones %}
-        <div class="info-item">
-            <span class="info-label">Observaciones</span>
-            <span class="info-value">{{ bien.observaciones }}</span>
-        </div>
-        {% endif %}
-        
+        <!-- Actions -->
         {% if user_is_admin %}
-        <div class="admin-actions">
-            <h5>Acciones Administrativas</h5>
-            <a href="{% url 'bienes:detail' bien.pk %}" class="btn btn-primary btn-admin">
-                <i class="fas fa-eye"></i> Ver Detalle Completo
+        <div class="actions">
+            <a href="{% url 'bienes:detail' bien.pk %}" class="btn btn-primary btn-sm">
+                👁️ Ver Completo
             </a>
-            <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-warning btn-admin">
-                <i class="fas fa-edit"></i> Editar Bien
+            <a href="{% url 'bienes:update' bien.pk %}" class="btn btn-warning btn-sm">
+                ✏️ Editar
             </a>
-            {% if is_mobile %}
-            <a href="{% url 'bienes:qr_mobile' bien.qr_code %}" class="btn btn-success btn-admin">
-                <i class="fas fa-mobile-alt"></i> Vista Móvil
-            </a>
-            {% endif %}
         </div>
         {% endif %}
     </div>
     
-    <div class="text-center">
-        <small class="text-muted">
-            Escaneado el {{ "now"|date:"d/m/Y H:i" }}
-        </small>
+    <!-- Footer -->
+    <div class="footer">
+        <div>📱 Escaneado: {{ "now"|date:"d/m/Y H:i" }}</div>
+        <div>DRTC - Puno | Sistema de Patrimonio</div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-    // Auto-refresh cada 30 segundos si es móvil
-    {% if is_mobile %}
-    setTimeout(function() {
-        location.reload();
-    }, 30000);
-    {% endif %}
-</script>
-{% endblock %}
+    <script>
+        // Funcionalidad táctil para copiar
+        document.querySelectorAll('.value').forEach(el => {
+            el.addEventListener('click', function() {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(this.textContent.trim());
+                    this.style.background = '#d4edda';
+                    setTimeout(() => {
+                        this.style.background = '';
+                    }, 1000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

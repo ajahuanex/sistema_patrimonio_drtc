@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }} - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .form-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .form-body {
+        padding: 40px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .error-list {
+        list-style: none;
+        padding: 0;
+        margin: 5px 0 0 0;
+    }
+    
+    .error-list li {
+        color: #dc3545;
+        font-size: 12px;
+        background: #f8d7da;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #e1e5e9;
+    }
+    
+    .btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .form-row .form-group {
+        flex: 1;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+        
+        .form-body {
+            padding: 20px;
+        }
+        
+        .btn-group {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 40px 20px;">
+    <div class="form-container">
+        <div class="form-header">
+            <h1>{{ titulo }}</h1>
+        </div>
+        
+        <div class="form-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <!-- Código -->
+                <div class="form-group">
+                    <label for="{{ form.codigo.id_for_label }}" class="required-field">
+                        {{ form.codigo.label }}
+                    </label>
+                    {{ form.codigo }}
+                    {% if form.codigo.help_text %}
+                        <div class="help-text">{{ form.codigo.help_text }}</div>
+                    {% endif %}
+                    {% if form.codigo.errors %}
+                        <ul class="error-list">
+                            {% for error in form.codigo.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <!-- Denominación -->
+                <div class="form-group">
+                    <label for="{{ form.denominacion.id_for_label }}" class="required-field">
+                        {{ form.denominacion.label }}
+                    </label>
+                    {{ form.denominacion }}
+                    {% if form.denominacion.help_text %}
+                        <div class="help-text">{{ form.denominacion.help_text }}</div>
+                    {% endif %}
+                    {% if form.denominacion.errors %}
+                        <ul class="error-list">
+                            {% for error in form.denominacion.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <!-- Grupo y Clase -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.grupo.id_for_label }}">
+                            {{ form.grupo.label }}
+                        </label>
+                        {{ form.grupo }}
+                        {% if form.grupo.help_text %}
+                            <div class="help-text">{{ form.grupo.help_text }}</div>
+                        {% endif %}
+                        {% if form.grupo.errors %}
+                            <ul class="error-list">
+                                {% for error in form.grupo.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.clase.id_for_label }}">
+                            {{ form.clase.label }}
+                        </label>
+                        {{ form.clase }}
+                        {% if form.clase.help_text %}
+                            <div class="help-text">{{ form.clase.help_text }}</div>
+                        {% endif %}
+                        {% if form.clase.errors %}
+                            <ul class="error-list">
+                                {% for error in form.clase.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Resolución y Estado -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.resolucion.id_for_label }}">
+                            {{ form.resolucion.label }}
+                        </label>
+                        {{ form.resolucion }}
+                        {% if form.resolucion.help_text %}
+                            <div class="help-text">{{ form.resolucion.help_text }}</div>
+                        {% endif %}
+                        {% if form.resolucion.errors %}
+                            <ul class="error-list">
+                                {% for error in form.resolucion.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.estado.id_for_label }}" class="required-field">
+                            {{ form.estado.label }}
+                        </label>
+                        {{ form.estado }}
+                        {% if form.estado.help_text %}
+                            <div class="help-text">{{ form.estado.help_text }}</div>
+                        {% endif %}
+                        {% if form.estado.errors %}
+                            <ul class="error-list">
+                                {% for error in form.estado.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Errores generales del formulario -->
+                {% if form.non_field_errors %}
+                    <div class="form-group">
+                        <ul class="error-list">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                
+                <!-- Botones -->
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                        💾 Guardar Catálogo
+                    </button>
+                    <a href="{% url 'catalogo:lista' %}" class="btn btn-secondary">
+                        ❌ Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-focus en el primer campo
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstInput = document.querySelector('.form-control');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    });
+    
+    // Validación en tiempo real
+    document.querySelectorAll('.form-control').forEach(input => {
+        input.addEventListener('blur', function() {
+            // Remover clases de error previas
+            this.classList.remove('is-invalid', 'is-valid');
+            
+            // Validar campo
+            if (this.hasAttribute('required') && !this.value.trim()) {
+                this.classList.add('is-invalid');
+            } else if (this.value.trim()) {
+                this.classList.add('is-valid');
+            }
+        });
+    });
+</script>
+
+<style>
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .form-control.is-valid {
+        border-color: #28a745;
+    }
+</style>
+{% endblock %}

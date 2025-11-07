@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ catalogo.codigo }} - {{ catalogo.denominacion }} - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 15px 15px 0 0;
+        text-align: center;
+    }
+    
+    .detail-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    
+    .detail-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .detail-body {
+        background: white;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .detail-actions {
+        padding: 30px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .detail-content {
+        padding: 40px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+    
+    .info-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 25px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .info-card h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+        flex: 0 0 40%;
+    }
+    
+    .info-value {
+        flex: 1;
+        text-align: right;
+        color: #333;
+    }
+    
+    .badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 25px;
+        text-align: center;
+    }
+    
+    .stats-number {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .stats-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    
+    .related-section {
+        margin-top: 40px;
+        padding-top: 40px;
+        border-top: 2px solid #e9ecef;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    
+    @media (max-width: 768px) {
+        .detail-header {
+            padding: 30px 20px;
+        }
+        
+        .detail-header h1 {
+            font-size: 2rem;
+        }
+        
+        .detail-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .detail-content {
+            padding: 30px 20px;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .info-value {
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 40px 20px;">
+    <div class="detail-container">
+        <!-- Header -->
+        <div class="detail-header">
+            <h1>{{ catalogo.codigo }}</h1>
+            <p>{{ catalogo.denominacion }}</p>
+        </div>
+        
+        <div class="detail-body">
+            <!-- Acciones -->
+            <div class="detail-actions">
+                <a href="{% url 'catalogo:editar' catalogo.pk %}" class="btn btn-primary">
+                    ✏️ Editar
+                </a>
+                <a href="{% url 'catalogo:lista' %}" class="btn btn-secondary">
+                    📋 Volver a Lista
+                </a>
+                {% if bienes_count > 0 %}
+                    <a href="/bienes/?catalogo={{ catalogo.pk }}" class="btn btn-success">
+                        📦 Ver Bienes ({{ bienes_count }})
+                    </a>
+                {% endif %}
+            </div>
+            
+            <!-- Contenido -->
+            <div class="detail-content">
+                <div class="info-grid">
+                    <!-- Información básica -->
+                    <div class="info-card">
+                        <h3>📋 Información Básica</h3>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Código:</span>
+                            <span class="info-value"><strong>{{ catalogo.codigo }}</strong></span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Denominación:</span>
+                            <span class="info-value">{{ catalogo.denominacion }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Estado:</span>
+                            <span class="info-value">
+                                {% if catalogo.estado == 'ACTIVO' %}
+                                    <span class="badge badge-success">{{ catalogo.estado }}</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ catalogo.estado }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Clasificación -->
+                    <div class="info-card">
+                        <h3>🏷️ Clasificación</h3>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Grupo:</span>
+                            <span class="info-value">{{ catalogo.grupo|default:"No especificado" }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Clase:</span>
+                            <span class="info-value">{{ catalogo.clase|default:"No especificado" }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Resolución:</span>
+                            <span class="info-value">{{ catalogo.resolucion|default:"No especificado" }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Estadísticas -->
+                    {% if bienes_count > 0 %}
+                    <div class="stats-card">
+                        <div class="stats-number">{{ bienes_count }}</div>
+                        <div class="stats-label">Bienes Registrados</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Fechas de registro -->
+                <div class="info-card">
+                    <h3>📅 Información de Registro</h3>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Fecha de Creación:</span>
+                        <span class="info-value">{{ catalogo.created_at|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Última Actualización:</span>
+                        <span class="info-value">{{ catalogo.updated_at|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    
+                    {% if catalogo.created_by %}
+                    <div class="info-item">
+                        <span class="info-label">Creado por:</span>
+                        <span class="info-value">{{ catalogo.created_by.get_full_name|default:catalogo.created_by.username }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if catalogo.updated_by %}
+                    <div class="info-item">
+                        <span class="info-label">Actualizado por:</span>
+                        <span class="info-value">{{ catalogo.updated_by.get_full_name|default:catalogo.updated_by.username }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Sección de bienes relacionados -->
+                {% if bienes_count > 0 %}
+                <div class="related-section">
+                    <h2 class="section-title">
+                        📦 Bienes Patrimoniales
+                    </h2>
+                    
+                    <div class="info-card">
+                        <p>Este catálogo tiene <strong>{{ bienes_count }}</strong> bienes patrimoniales registrados.</p>
+                        <a href="/bienes/?catalogo={{ catalogo.pk }}" class="btn btn-success">
+                            Ver todos los bienes
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="related-section">
+                    <h2 class="section-title">
+                        📦 Bienes Patrimoniales
+                    </h2>
+                    
+                    <div class="empty-state">
+                        <i>📦</i>
+                        <h3>No hay bienes registrados</h3>
+                        <p>Aún no se han registrado bienes patrimoniales con este catálogo.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Confirmar antes de eliminar (si se implementa)
+    function confirmarEliminacion() {
+        return confirm('¿Está seguro de que desea eliminar este catálogo? Esta acción no se puede deshacer.');
+    }
+    
+    // Copiar código al portapapeles
+    function copiarCodigo() {
+        const codigo = "{{ catalogo.codigo }}";
+        navigator.clipboard.writeText(codigo).then(function() {
+            // Mostrar notificación temporal
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copiado';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        });
+    }
+</script>
+{% endblock %}

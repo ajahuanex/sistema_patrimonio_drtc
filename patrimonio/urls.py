@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .views import home_view, ReactAppView
 from apps.bienes.views import QRCodeDetailView
 from .health import health_check, health_detailed
@@ -30,6 +30,11 @@ urlpatterns = [
     # Health checks
     path('health/', health_check, name='health_check'),
     path('health/detailed/', health_detailed, name='health_detailed'),
+    
+    # Authentication URLs
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('login/', lambda request: redirect('/accounts/login/')),
+    path('logout/', lambda request: redirect('/accounts/logout/')),
     
     # Django views (legacy)
     path('catalogo/', include('apps.catalogo.urls')),

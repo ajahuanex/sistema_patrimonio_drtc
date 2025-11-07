@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ oficina.nombre }} - Detalle de Oficina{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-building"></i>
+                    Detalle de Oficina
+                </h1>
+                <div>
+                    <a href="{% url 'oficinas:lista' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a Lista
+                    </a>
+                    <button class="btn btn-warning" onclick="editarOficina({{ oficina.id }})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    {% if oficina.puede_eliminarse %}
+                    <button class="btn btn-danger" onclick="eliminarOficina({{ oficina.id }}, '{{ oficina.nombre }}')">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de la Oficina -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Información General
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Código:</label>
+                                <p class="mb-0">{{ oficina.codigo }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Estado:</label>
+                                <p class="mb-0">
+                                    {% if oficina.estado %}
+                                        <span class="badge bg-success">{{ oficina.estado_texto }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ oficina.estado_texto }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre:</label>
+                        <p class="mb-0">{{ oficina.nombre }}</p>
+                    </div>
+                    
+                    {% if oficina.descripcion %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descripción:</label>
+                        <p class="mb-0">{{ oficina.descripcion }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Responsable:</label>
+                                <p class="mb-0">{{ oficina.responsable }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {% if oficina.cargo_responsable %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Cargo:</label>
+                                <p class="mb-0">{{ oficina.cargo_responsable }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if oficina.telefono %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Teléfono:</label>
+                                <p class="mb-0">{{ oficina.telefono }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if oficina.email %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Email:</label>
+                                <p class="mb-0">
+                                    <a href="mailto:{{ oficina.email }}">{{ oficina.email }}</a>
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if oficina.ubicacion %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ubicación:</label>
+                        <p class="mb-0">{{ oficina.ubicacion }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Estadísticas -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i>
+                        Estadísticas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total de Bienes:</label>
+                        <p class="mb-0">
+                            <span class="badge bg-primary fs-6">{{ oficina.total_bienes }}</span>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bienes Activos:</label>
+                        <p class="mb-0">
+                            <span class="badge bg-success fs-6">{{ oficina.bienes_activos }}</span>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Fecha de Registro:</label>
+                        <p class="mb-0">
+                            {{ oficina.created_at|date:"d/m/Y H:i" }}
+                            {% if oficina.created_by %}
+                                <br><small class="text-muted">por {{ oficina.created_by.get_full_name|default:oficina.created_by.username }}</small>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    {% if oficina.updated_at != oficina.created_at %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Última Actualización:</label>
+                        <p class="mb-0">
+                            {{ oficina.updated_at|date:"d/m/Y H:i" }}
+                            {% if oficina.updated_by %}
+                                <br><small class="text-muted">por {{ oficina.updated_by.get_full_name|default:oficina.updated_by.username }}</small>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Acciones Rápidas -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tools"></i>
+                        Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if oficina.estado %}
+                        <a href="{% url 'oficinas:desactivar' oficina.id %}" class="btn btn-warning btn-sm w-100 mb-2">
+                            <i class="fas fa-pause"></i> Desactivar Oficina
+                        </a>
+                    {% else %}
+                        <a href="{% url 'oficinas:activar' oficina.id %}" class="btn btn-success btn-sm w-100 mb-2">
+                            <i class="fas fa-play"></i> Activar Oficina
+                        </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-info btn-sm w-100 mb-2" onclick="verBienesOficina({{ oficina.id }})">
+                        <i class="fas fa-box"></i> Ver Bienes ({{ oficina.total_bienes }})
+                    </button>
+                    
+                    <button class="btn btn-secondary btn-sm w-100" onclick="generarReporteOficina({{ oficina.id }})">
+                        <i class="fas fa-file-pdf"></i> Generar Reporte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historial de Cambios -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i>
+                        Historial de Cambios
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if oficina.historial.all %}
+                        <div class="timeline">
+                            {% for cambio in oficina.historial.all|slice:":10" %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker">
+                                    {% if cambio.accion == 'CREAR' %}
+                                        <i class="fas fa-plus text-success"></i>
+                                    {% elif cambio.accion == 'EDITAR' %}
+                                        <i class="fas fa-edit text-warning"></i>
+                                    {% elif cambio.accion == 'ACTIVAR' %}
+                                        <i class="fas fa-play text-success"></i>
+                                    {% elif cambio.accion == 'DESACTIVAR' %}
+                                        <i class="fas fa-pause text-danger"></i>
+                                    {% else %}
+                                        <i class="fas fa-circle text-info"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{{ cambio.get_accion_display }}</strong>
+                                        <small class="text-muted">{{ cambio.fecha|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                    <p class="mb-1">
+                                        <small>
+                                            Por: <strong>{{ cambio.usuario.get_full_name|default:cambio.usuario.username }}</strong>
+                                            {% if cambio.ip_address %}
+                                                desde {{ cambio.ip_address }}
+                                            {% endif %}
+                                        </small>
+                                    </p>
+                                    {% if cambio.observaciones %}
+                                        <p class="mb-1"><small class="text-muted">{{ cambio.observaciones }}</small></p>
+                                    {% endif %}
+                                    {% if cambio.cambios_detallados %}
+                                        <div class="mt-2">
+                                            <small><strong>Cambios:</strong></small>
+                                            <ul class="list-unstyled mb-0">
+                                                {% for detalle in cambio.cambios_detallados %}
+                                                <li><small>
+                                                    <strong>{{ detalle.campo }}:</strong> 
+                                                    <span class="text-danger">{{ detalle.anterior|default:"(vacío)" }}</span> 
+                                                    → 
+                                                    <span class="text-success">{{ detalle.nuevo|default:"(vacío)" }}</span>
+                                                </small></li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if oficina.historial.count > 10 %}
+                            <div class="text-center mt-3">
+                                <button class="btn btn-sm btn-outline-primary" onclick="verHistorialCompleto({{ oficina.id }})">
+                                    <i class="fas fa-history"></i> Ver Historial Completo ({{ oficina.historial.count }} registros)
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center">
+                            <i class="fas fa-info-circle"></i>
+                            No hay cambios registrados para esta oficina.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bienes de la Oficina (si los hay) -->
+    {% if oficina.total_bienes > 0 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-box"></i>
+                        Bienes Asignados (Últimos 10)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Esta oficina tiene {{ oficina.total_bienes }} bienes asignados.
+                        <a href="#" onclick="verBienesOficina({{ oficina.id }})">Ver todos los bienes</a>
+                    </p>
+                    <!-- Aquí se mostraría la lista de bienes cuando esté implementada -->
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editarOficina(id) {
+    // Redirigir a la lista con el modal de edición
+    window.location.href = `{% url 'oficinas:lista' %}?edit=${id}`;
+}
+
+function eliminarOficina(id, nombre) {
+    if (confirm('¿Está seguro de que desea eliminar la oficina "' + nombre + '"?\n\nEsta acción no se puede deshacer.')) {
+        // Enviar solicitud de eliminación por AJAX
+        fetch(`/oficinas/${id}/eliminar/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                alert(data.message);
+                // Redirigir a la lista de oficinas
+                window.location.href = '{% url "oficinas:lista" %}';
+            } else {
+                // Mostrar errores
+                let errores = '';
+                for (let campo in data.errors) {
+                    errores += data.errors[campo].join(', ') + '\n';
+                }
+                alert('Error al eliminar la oficina:\n' + errores);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar la oficina. Por favor intente nuevamente.');
+        });
+    }
+}
+
+function verBienesOficina(id) {
+    // TODO: Redirigir a lista de bienes filtrada por oficina
+    alert('Función para ver bienes en desarrollo para oficina ID: ' + id);
+}
+
+function generarReporteOficina(id) {
+    // TODO: Implementar generación de reporte
+    alert('Función de reporte en desarrollo para oficina ID: ' + id);
+}
+</script>
+{% endblock %}

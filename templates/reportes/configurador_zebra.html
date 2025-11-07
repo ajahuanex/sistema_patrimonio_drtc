@@ -1,0 +1,978 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configurador Impresoras Zebra - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .zebra-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .zebra-header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .zebra-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    
+    .zebra-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .config-panel {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .panel-header {
+        background: #f8f9fa;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .panel-title {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .panel-body {
+        padding: 30px;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-bottom: 25px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2c3e50;
+        box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .form-check-input {
+        margin-right: 10px;
+    }
+    
+    .impresora-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .impresora-card:hover {
+        border-color: #2c3e50;
+        background: #f8f9fa;
+    }
+    
+    .impresora-card.selected {
+        border-color: #2c3e50;
+        background: #e8f4f8;
+    }
+    
+    .impresora-name {
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .impresora-specs {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .preview-area {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .preview-content {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 10px 0;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .preview-visual {
+        background: white;
+        border: 2px solid #333;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 15px 0;
+        min-height: 200px;
+        position: relative;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    
+    .preview-qr-placeholder {
+        width: 60px;
+        height: 60px;
+        background: #333;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        text-align: center;
+        margin: 5px 0;
+    }
+    
+    .preview-text {
+        margin: 3px 0;
+        font-weight: bold;
+    }
+    
+    .preview-text.small {
+        font-size: 10px;
+        font-weight: normal;
+    }
+    
+    .preview-tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 15px;
+    }
+    
+    .preview-tab {
+        padding: 10px 20px;
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-bottom: none;
+        cursor: pointer;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+    }
+    
+    .preview-tab.active {
+        background: white;
+        border-bottom: 1px solid white;
+        margin-bottom: -1px;
+    }
+    
+    .preview-panel {
+        display: none;
+    }
+    
+    .preview-panel.active {
+        display: block;
+    }
+    
+    .dimensiones-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .dimensiones-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    
+    .dimension-item {
+        text-align: center;
+    }
+    
+    .dimension-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .dimension-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .btn {
+        padding: 12px 25px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #27ae60, #2ecc71);
+        color: white;
+    }
+    
+    .btn-info {
+        background: linear-gradient(135deg, #3498db, #5dade2);
+        color: white;
+    }
+    
+    .btn-warning {
+        background: linear-gradient(135deg, #f39c12, #f1c40f);
+        color: white;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .alert {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid;
+    }
+    
+    .alert-info {
+        background-color: #d1ecf1;
+        border-color: #17a2b8;
+        color: #0c5460;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+    }
+    
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
+    }
+    
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #dc3545;
+        color: #721c24;
+    }
+    
+    .campos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #2c3e50;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 768px) {
+        .zebra-container {
+            padding: 10px;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .dimensiones-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .panel-body {
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="zebra-container">
+    <!-- Header -->
+    <div class="zebra-header">
+        <h1>🖨️ Configurador Impresoras Zebra</h1>
+        <p>Configure y genere tickets/etiquetas optimizados para impresoras Zebra ZD220, ZD410 y ZD411</p>
+        {% if bien_seleccionado %}
+        <div class="alert alert-info" style="margin-top: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);">
+            <strong>📦 Bien seleccionado:</strong> {{ bien_seleccionado.codigo_patrimonial }} - {{ bien_seleccionado.catalogo.denominacion }}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Información de Impresoras -->
+    <div class="config-panel">
+        <div class="panel-header">
+            <h3 class="panel-title">📋 Selección de Impresora</h3>
+        </div>
+        <div class="panel-body">
+            <div class="alert alert-info">
+                <strong>ℹ️ Información:</strong> 
+                Seleccione su modelo de impresora Zebra para obtener configuraciones optimizadas según las especificaciones técnicas.
+            </div>
+            
+            <div class="form-grid">
+                {% for codigo, info in impresoras_zebra.items %}
+                <div class="impresora-card" data-impresora="{{ codigo }}">
+                    <div class="impresora-name">{{ codigo }}</div>
+                    <div class="impresora-specs">
+                        {{ info.descripcion }}<br>
+                        <small>Ancho máximo: {{ info.ancho_maximo_mm }}mm</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Configuración -->
+    <form id="configForm" method="post">
+        {% csrf_token %}
+        
+        <div class="config-panel">
+            <div class="panel-header">
+                <h3 class="panel-title">⚙️ Configuración de Ticket/Etiqueta</h3>
+            </div>
+            <div class="panel-body">
+                <input type="hidden" id="impresora" name="impresora" value="ZD220">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="dpi">Resolución (DPI)</label>
+                        <select class="form-control" id="dpi" name="dpi">
+                            <option value="203">203 DPI (Estándar)</option>
+                            <option value="300">300 DPI (Alta calidad)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="tamaño">Tamaño Predefinido</label>
+                        <select class="form-control" id="tamaño" name="tamaño">
+                            <option value="personalizado">Personalizado</option>
+                            {% for codigo, config in tamaños_predefinidos.items %}
+                            <option value="{{ codigo }}">{{ config.descripcion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Dimensiones personalizadas -->
+                <div id="dimensiones-personalizadas" class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="ancho_mm">Ancho (mm)</label>
+                        <input type="number" class="form-control" id="ancho_mm" name="ancho_mm" 
+                               value="50" min="20" max="112" step="0.1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="alto_mm">Alto (mm)</label>
+                        <input type="number" class="form-control" id="alto_mm" name="alto_mm" 
+                               value="30" min="15" max="200" step="0.1">
+                    </div>
+                </div>
+                
+                <!-- Configuración del QR -->
+                <div class="form-group">
+                    <h4>📱 Configuración del Código QR</h4>
+                    <div class="form-grid">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="incluir_qr" name="incluir_qr" checked>
+                            <label class="form-check-label" for="incluir_qr">Incluir código QR</label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="posicion_qr">Posición del QR</label>
+                            <select class="form-control" id="posicion_qr" name="posicion_qr">
+                                <option value="izquierda">Izquierda</option>
+                                <option value="derecha">Derecha</option>
+                                <option value="arriba">Arriba</option>
+                                <option value="abajo">Abajo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Campos a incluir -->
+                <div class="form-group">
+                    <h4>📝 Campos a Incluir</h4>
+                    <div class="campos-grid">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="codigo_patrimonial" checked>
+                            <label class="form-check-label">Código Patrimonial</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="denominacion" checked>
+                            <label class="form-check-label">Denominación</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="oficina" checked>
+                            <label class="form-check-label">Oficina</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="estado" checked>
+                            <label class="form-check-label">Estado</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="marca_modelo">
+                            <label class="form-check-label">Marca y Modelo</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="serie">
+                            <label class="form-check-label">Número de Serie</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="campos_incluir[]" 
+                                   value="placa">
+                            <label class="form-check-label">Placa (Vehículos)</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Opciones adicionales -->
+                <div class="form-group">
+                    <h4>🎨 Opciones de Diseño</h4>
+                    <div class="form-grid">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="incluir_borde" name="incluir_borde" checked>
+                            <label class="form-check-label" for="incluir_borde">Incluir borde</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="incluir_fecha" name="incluir_fecha" checked>
+                            <label class="form-check-label" for="incluir_fecha">Incluir fecha</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preview -->
+        <div class="config-panel">
+            <div class="panel-header">
+                <h3 class="panel-title">👁️ Vista Previa</h3>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="form-label" for="bien_preview">Bien para Preview</label>
+                    <input type="number" class="form-control" id="bien_preview" name="bien_id" 
+                           value="{% if bien_seleccionado %}{{ bien_seleccionado.id }}{% endif %}"
+                           placeholder="ID del bien para preview">
+                    {% if bien_seleccionado %}
+                    <small class="form-text text-muted">
+                        Bien actual: {{ bien_seleccionado.codigo_patrimonial }} - {{ bien_seleccionado.catalogo.denominacion }}
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <div class="preview-area" id="previewArea">
+                    <div class="loading" id="loadingPreview">
+                        <div class="spinner"></div>
+                        <p>Generando preview...</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-eye fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Haga clic en "Generar Preview" para ver el resultado</p>
+                    </div>
+                </div>
+                
+                <div id="dimensionesInfo" class="dimensiones-info" style="display: none;">
+                    <h5>📏 Dimensiones del Ticket/Etiqueta</h5>
+                    <div class="dimensiones-grid">
+                        <div class="dimension-item">
+                            <div class="dimension-value" id="dim-ancho-mm">-</div>
+                            <div class="dimension-label">Ancho (mm)</div>
+                        </div>
+                        <div class="dimension-item">
+                            <div class="dimension-value" id="dim-alto-mm">-</div>
+                            <div class="dimension-label">Alto (mm)</div>
+                        </div>
+                        <div class="dimension-item">
+                            <div class="dimension-value" id="dim-ancho-dots">-</div>
+                            <div class="dimension-label">Ancho (dots)</div>
+                        </div>
+                        <div class="dimension-item">
+                            <div class="dimension-value" id="dim-alto-dots">-</div>
+                            <div class="dimension-label">Alto (dots)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-grid" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-info" onclick="generarPreview()">
+                        👁️ Generar Preview
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="descargarTest()">
+                        🧪 Ticket ZPL
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="descargarPDF()">
+                        📄 Preview PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Generación Masiva -->
+        <div class="config-panel">
+            <div class="panel-header">
+                <h3 class="panel-title">📦 Generación Masiva</h3>
+            </div>
+            <div class="panel-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Importante:</strong> 
+                    La generación masiva puede crear archivos grandes. Se recomienda limitar a 100 bienes por archivo.
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="limite">Límite de bienes</label>
+                        <input type="number" class="form-control" id="limite" name="limite" 
+                               value="100" min="1" max="500">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="busqueda">Búsqueda (opcional)</label>
+                        <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                               placeholder="Código, denominación, marca...">
+                    </div>
+                </div>
+                
+                <div class="form-grid" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" formaction="{% url 'reportes:generar_tickets_masivos_zebra' %}">
+                        📦 Generar Tickets Masivos
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="window.location.href='{% url 'bienes:list' %}'">
+                        📋 Ver Lista de Bienes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Selección de impresora
+    document.querySelectorAll('.impresora-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // Remover selección anterior
+            document.querySelectorAll('.impresora-card').forEach(c => c.classList.remove('selected'));
+            
+            // Seleccionar nueva
+            this.classList.add('selected');
+            
+            const impresora = this.dataset.impresora;
+            document.getElementById('impresora').value = impresora;
+            
+            // Cargar configuraciones recomendadas
+            cargarConfiguracionImpresora(impresora);
+        });
+    });
+    
+    // Cambio de tamaño
+    document.getElementById('tamaño').addEventListener('change', function() {
+        const dimensionesDiv = document.getElementById('dimensiones-personalizadas');
+        if (this.value === 'personalizado') {
+            dimensionesDiv.style.display = 'grid';
+        } else {
+            dimensionesDiv.style.display = 'none';
+        }
+    });
+    
+    // Seleccionar impresora por defecto
+    document.querySelector('.impresora-card[data-impresora="ZD220"]').click();
+});
+
+function cargarConfiguracionImpresora(impresora) {
+    fetch(`/reportes/zebra/configuracion/${impresora}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Actualizar DPI recomendado
+                document.getElementById('dpi').value = data.dpi_recomendado;
+                
+                // Actualizar dimensiones por defecto
+                if (data.dimensiones_defecto) {
+                    document.getElementById('ancho_mm').value = data.dimensiones_defecto.ancho_mm;
+                    document.getElementById('alto_mm').value = data.dimensiones_defecto.alto_mm;
+                }
+                
+                // Actualizar tamaños disponibles
+                const selectTamaño = document.getElementById('tamaño');
+                // Mantener opciones existentes, solo actualizar valor por defecto
+                if (Object.keys(data.tamaños_recomendados).length > 0) {
+                    const primerRecomendado = Object.keys(data.tamaños_recomendados)[0];
+                    selectTamaño.value = primerRecomendado;
+                    selectTamaño.dispatchEvent(new Event('change'));
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando configuración:', error);
+        });
+}
+
+function generarPreview() {
+    const form = document.getElementById('configForm');
+    const formData = new FormData(form);
+    
+    // Mostrar loading
+    document.getElementById('loadingPreview').style.display = 'block';
+    document.getElementById('previewArea').innerHTML = '<div class="loading" id="loadingPreview"><div class="spinner"></div><p>Generando preview...</p></div>';
+    
+    fetch('{% url "reportes:generar_preview_zebra" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const previewArea = document.getElementById('previewArea');
+        
+        if (data.success) {
+            // Generar vista visual simple
+            const bien = data.bien_info;
+            const config = data.config_dimensiones;
+            
+            previewArea.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>✅ Preview generado exitosamente</strong><br>
+                    Bien: ${bien.codigo} - ${bien.denominacion}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>👁️ Vista Visual</h5>
+                        <div class="preview-visual" style="width: 300px; height: 200px; border: 2px solid #333; padding: 15px; background: white; position: relative;">
+                            <div style="display: flex; gap: 10px;">
+                                <div style="width: 50px; height: 50px; background: #333; color: white; display: flex; align-items: center; justify-content: center; font-size: 8px;">QR</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; font-size: 12px;">${bien.codigo}</div>
+                                    <div style="font-size: 10px; margin: 2px 0;">${bien.denominacion.substring(0, 25)}...</div>
+                                    <div style="font-size: 9px; margin: 2px 0;">Oficina: ${bien.oficina.substring(0, 15)}...</div>
+                                    <div style="font-size: 9px; margin: 2px 0;">Estado: ${bien.estado || 'Bueno'}</div>
+                                </div>
+                            </div>
+                            <div style="position: absolute; bottom: 5px; right: 5px; font-size: 7px;">${new Date().toLocaleDateString()}</div>
+                        </div>
+                        <small class="text-muted">Dimensiones: ${config.ancho_mm}mm x ${config.alto_mm}mm</small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>📄 Código ZPL</h5>
+                        <div class="preview-content" style="max-height: 200px; overflow-y: auto; font-size: 10px;">
+                            ${data.codigo_zpl.replace(/\n/g, '<br>')}
+                        </div>
+                        <button class="btn btn-secondary btn-sm mt-2" onclick="copyToClipboard('${data.codigo_zpl.replace(/'/g, "\\'")}')">
+                            📋 Copiar ZPL
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <strong>📊 Información:</strong> 
+                            ${data.estadisticas.lineas_codigo} líneas de código ZPL, 
+                            ${data.estadisticas.comandos_texto} comandos de texto
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Mostrar dimensiones
+            const dimensionesInfo = document.getElementById('dimensionesInfo');
+            dimensionesInfo.style.display = 'block';
+            
+            document.getElementById('dim-ancho-mm').textContent = data.config_dimensiones.ancho_mm + ' mm';
+            document.getElementById('dim-alto-mm').textContent = data.config_dimensiones.alto_mm + ' mm';
+            document.getElementById('dim-ancho-dots').textContent = data.config_dimensiones.ancho_dots + ' dots';
+            document.getElementById('dim-alto-dots').textContent = data.config_dimensiones.alto_dots + ' dots';
+            
+        } else {
+            previewArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>❌ Error generando preview:</strong><br>
+                    ${data.errors.join('<br>')}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('previewArea').innerHTML = `
+            <div class="alert alert-danger">
+                <strong>❌ Error de conexión:</strong><br>
+                ${error.message}
+            </div>
+        `;
+    });
+}
+
+function descargarTest() {
+    const impresora = document.getElementById('impresora').value;
+    const dpi = document.getElementById('dpi').value;
+    
+    window.open(`/reportes/zebra/test/?impresora=${impresora}&dpi=${dpi}`, '_blank');
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Código ZPL copiado al portapapeles');
+        });
+    } else {
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Código ZPL copiado al portapapeles');
+    }
+}
+
+function descargarPDF() {
+    const impresora = document.getElementById('impresora').value;
+    const dpi = document.getElementById('dpi').value;
+    const bienId = document.getElementById('bien_preview').value;
+    const anchoMm = document.getElementById('ancho_mm').value;
+    const altoMm = document.getElementById('alto_mm').value;
+    
+    let url = `/reportes/zebra/pdf/?impresora=${impresora}&dpi=${dpi}&ancho_mm=${anchoMm}&alto_mm=${altoMm}`;
+    if (bienId) {
+        url += `&bien_id=${bienId}`;
+    }
+    
+    window.open(url, '_blank');
+}
+
+function switchPreviewTab(tabName) {
+    // Ocultar todos los paneles
+    document.querySelectorAll('.preview-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    // Desactivar todas las tabs
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Activar el panel y tab seleccionado
+    document.getElementById(`preview-${tabName}`).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function generateVisualPreview(data) {
+    const bien = data.bien_info;
+    const config = data.config_dimensiones;
+    const configInfo = data.config_info;
+    
+    // Determinar qué campos mostrar
+    const campos = [];
+    if (configInfo.campos_incluidos.includes('codigo_patrimonial')) {
+        campos.push(`<div class="preview-text" style="font-size: 14px; font-weight: bold;">${bien.codigo}</div>`);
+    }
+    if (configInfo.campos_incluidos.includes('denominacion') && bien.denominacion) {
+        campos.push(`<div class="preview-text small">${bien.denominacion.substring(0, 35)}${bien.denominacion.length > 35 ? '...' : ''}</div>`);
+    }
+    if (configInfo.campos_incluidos.includes('oficina') && bien.oficina) {
+        campos.push(`<div class="preview-text small">Oficina: ${bien.oficina.substring(0, 25)}${bien.oficina.length > 25 ? '...' : ''}</div>`);
+    }
+    if (configInfo.campos_incluidos.includes('estado') && bien.estado) {
+        campos.push(`<div class="preview-text small">Estado: ${bien.estado}</div>`);
+    }
+    if (configInfo.campos_incluidos.includes('marca_modelo') && bien.marca_modelo) {
+        campos.push(`<div class="preview-text small">${bien.marca_modelo.substring(0, 30)}${bien.marca_modelo.length > 30 ? '...' : ''}</div>`);
+    }
+    if (configInfo.campos_incluidos.includes('serie') && bien.serie) {
+        campos.push(`<div class="preview-text small">S/N: ${bien.serie}</div>`);
+    }
+    
+    // Generar layout según posición del QR
+    let layout = '';
+    const qrElement = configInfo.incluir_qr ? '<div class="preview-qr-placeholder">QR<br>CODE</div>' : '';
+    const textContent = `<div style="flex: 1;">${campos.join('')}</div>`;
+    
+    if (configInfo.posicion_qr === 'izquierda') {
+        layout = `<div style="display: flex; align-items: flex-start; gap: 10px;">${qrElement}${textContent}</div>`;
+    } else if (configInfo.posicion_qr === 'derecha') {
+        layout = `<div style="display: flex; align-items: flex-start; gap: 10px;">${textContent}${qrElement}</div>`;
+    } else if (configInfo.posicion_qr === 'arriba') {
+        layout = `<div style="text-align: center; margin-bottom: 10px;">${qrElement}</div>${textContent}`;
+    } else { // abajo
+        layout = `${textContent}<div style="text-align: center; margin-top: 10px;">${qrElement}</div>`;
+    }
+    
+    return `
+        <div class="preview-visual" style="width: ${Math.min(450, config.ancho_mm * 4)}px; height: ${Math.min(350, config.alto_mm * 4)}px;">
+            ${layout}
+            <div style="position: absolute; bottom: 5px; right: 5px; font-size: 8px; color: #666;">
+                ${new Date().toLocaleDateString()}
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <strong>📏 Dimensiones:</strong><br>
+                    ${config.ancho_mm}mm x ${config.alto_mm}mm<br>
+                    <small>${config.ancho_dots} x ${config.alto_dots} dots a ${config.dpi} DPI</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="alert alert-success">
+                    <strong>📊 Estadísticas ZPL:</strong><br>
+                    ${data.estadisticas.lineas_codigo} líneas, ${data.estadisticas.comandos_texto} textos<br>
+                    <small>${data.estadisticas.caracteres} caracteres total</small>
+                </div>
+            </div>
+        </div>
+        
+        ${data.compatibilidad[0] ? 
+            `<div class="alert alert-success"><strong>✅ Compatible:</strong> ${data.compatibilidad[1]}</div>` :
+            `<div class="alert alert-warning"><strong>⚠️ Advertencia:</strong> ${data.compatibilidad[1]}</div>`
+        }
+    `;
+}
+
+function formatZPLCode(zplCode) {
+    // Formatear el código ZPL para mejor legibilidad
+    return zplCode
+        .replace(/\^XA/g, '<span style="color: #007bff; font-weight: bold;">^XA</span> <span style="color: #28a745;">// Inicio de etiqueta</span>')
+        .replace(/\^XZ/g, '<span style="color: #007bff; font-weight: bold;">^XZ</span> <span style="color: #28a745;">// Fin de etiqueta</span>')
+        .replace(/\^FO(\d+),(\d+)/g, '<span style="color: #dc3545; font-weight: bold;">^FO$1,$2</span> <span style="color: #28a745;">// Posición X=$1, Y=$2</span>')
+        .replace(/\^FD([^\\^]+)\^FS/g, '<span style="color: #6f42c1; font-weight: bold;">^FD$1^FS</span> <span style="color: #28a745;">// Texto: "$1"</span>')
+        .replace(/\^A([A-Z]),(\d+),(\d+)/g, '<span style="color: #fd7e14; font-weight: bold;">^A$1,$2,$3</span> <span style="color: #28a745;">// Fuente $1, Tamaño $2x$3</span>')
+        .replace(/\^BQ([^\\^]+)/g, '<span style="color: #20c997; font-weight: bold;">^BQ$1</span> <span style="color: #28a745;">// Código QR</span>')
+        .replace(/\^GB(\d+),(\d+),(\d+)/g, '<span style="color: #6c757d; font-weight: bold;">^GB$1,$2,$3</span> <span style="color: #28a745;">// Línea/Rectángulo $1x$2, grosor $3</span>');
+}
+
+function copyZPLCode() {
+    const zplCode = document.querySelector('#preview-codigo .preview-content').textContent;
+    
+    // Limpiar el código de las etiquetas HTML
+    const cleanCode = zplCode.replace(/<[^>]*>/g, '').replace(/\/\/.*$/gm, '').trim();
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(cleanCode).then(() => {
+            // Mostrar feedback visual
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '✅ Copiado';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-secondary');
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-secondary');
+            }, 2000);
+        });
+    } else {
+        // Fallback para navegadores antiguos
+        const textArea = document.createElement('textarea');
+        textArea.value = cleanCode;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('Código ZPL copiado al portapapeles');
+    }
+}
+</script>
+{% endblock %}
