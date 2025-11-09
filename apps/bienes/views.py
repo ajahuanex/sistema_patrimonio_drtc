@@ -619,15 +619,53 @@ class BienUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
 
 
 class BienDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
-    """Vista para eliminar un bien patrimonial"""
+    """Vista para eliminar un bien patrimonial (soft delete)"""
     model = BienPatrimonial
     template_name = 'bienes/confirm_delete.html'
     permission_required = 'bienes.delete_bienpatrimonial'
     success_url = reverse_lazy('bienes:list')
     
     def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Bien patrimonial eliminado correctamente.')
-        return super().delete(request, *args, **kwargs)
+        """Sobrescribe delete para usar soft delete"""
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        
+        # Obtener motivo de eliminación si se proporciona
+        deletion_reason = request.POST.get('deletion_reason', 'Eliminación desde interfaz web')
+        
+        # Usar soft delete
+        self.object.soft_delete(user=request.user, reason=deletion_reason)
+        
+        # Crear entrada en RecycleBin
+        from apps.core.models import RecycleBin, RecycleBinConfig
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        content_type = ContentType.objects.get_for_model(BienPatrimonial)
+        config = RecycleBinConfig.get_config_for_module('bienes')
+        auto_delete_at = timezone.now() + timedelta(days=config.retention_days)
+        
+        RecycleBin.objects.create(
+            content_type=content_type,
+            object_id=self.object.id,
+            object_repr=f"{self.object.codigo_patrimonial} - {self.object.denominacion}",
+            module_name='bienes',
+            deleted_by=request.user,
+            deletion_reason=deletion_reason,
+            auto_delete_at=auto_delete_at,
+            original_data={
+                'codigo_patrimonial': self.object.codigo_patrimonial,
+                'denominacion': self.object.denominacion,
+                'estado_bien': self.object.estado_bien,
+                'marca': self.object.marca,
+                'modelo': self.object.modelo,
+                'serie': self.object.serie
+            }
+        )
+        
+        messages.success(request, 'Bien patrimonial movido a la papelera de reciclaje.')
+        return redirect(success_url)
 
 
 class ImportarBienesView(LoginRequiredMixin, PermissionRequiredMixin, View):

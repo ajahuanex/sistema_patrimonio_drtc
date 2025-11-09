@@ -133,7 +133,7 @@ def lista_catalogo_view(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Obtener grupos únicos para filtro
+    # Obtener grupos únicos para filtro (solo activos, no eliminados)
     grupos = Catalogo.objects.values_list('grupo', flat=True).distinct().order_by('grupo')
     
     context = {
@@ -329,3 +329,76 @@ def exportar_catalogo_view(request):
     
     wb.save(response)
     return response
+
+
+@login_required
+@permission_required('catalogo.delete_catalogo', raise_exception=True)
+@require_http_methods(["POST"])
+def eliminar_catalogo_view(request, pk):
+    """Vista para eliminar un catálogo via AJAX (soft delete)"""
+    try:
+        catalogo = get_object_or_404(Catalogo, pk=pk)
+        
+        # Verificar si tiene bienes asociados
+        bienes_count = 0
+        try:
+            from apps.bienes.models import BienPatrimonial
+            bienes_count = BienPatrimonial.objects.filter(catalogo=catalogo).count()
+        except ImportError:
+            pass
+        
+        if bienes_count > 0:
+            return JsonResponse({
+                'success': False,
+                'errors': {
+                    'general': [f'No se puede eliminar el catálogo "{catalogo.denominacion}" porque tiene {bienes_count} bienes asociados.']
+                }
+            })
+        
+        # Guardar información para el mensaje
+        codigo_catalogo = catalogo.codigo
+        denominacion_catalogo = catalogo.denominacion
+        
+        # Obtener motivo de eliminación si se proporciona
+        deletion_reason = request.POST.get('deletion_reason', 'Eliminación desde interfaz web')
+        
+        # Usar soft delete
+        catalogo.soft_delete(user=request.user, reason=deletion_reason)
+        
+        # Crear entrada en RecycleBin
+        from apps.core.models import RecycleBin, RecycleBinConfig
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        content_type = ContentType.objects.get_for_model(Catalogo)
+        config = RecycleBinConfig.get_config_for_module('catalogo')
+        auto_delete_at = timezone.now() + timedelta(days=config.retention_days)
+        
+        RecycleBin.objects.create(
+            content_type=content_type,
+            object_id=catalogo.id,
+            object_repr=f"{codigo_catalogo} - {denominacion_catalogo}",
+            module_name='catalogo',
+            deleted_by=request.user,
+            deletion_reason=deletion_reason,
+            auto_delete_at=auto_delete_at,
+            original_data={
+                'codigo': catalogo.codigo,
+                'denominacion': catalogo.denominacion,
+                'grupo': catalogo.grupo,
+                'clase': catalogo.clase,
+                'estado': catalogo.estado
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'El catálogo "{denominacion_catalogo}" ({codigo_catalogo}) ha sido movido a la papelera de reciclaje.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'errors': {'general': [str(e)]}
+        })

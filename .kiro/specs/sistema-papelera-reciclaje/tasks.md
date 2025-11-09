@@ -83,28 +83,48 @@
 
 ## Fase 2: Integración con Modelos Existentes
 
-- [ ] 6. Integrar soft delete en modelo Oficina
+- [x] 6. Integrar soft delete en modelo Oficina
+
+
+
+
+
   - Verificar que Oficina herede correctamente de BaseModel actualizado
   - Sobrescribir método delete() para usar soft_delete automáticamente
   - Actualizar método puede_eliminarse() para considerar soft delete
   - Crear tests específicos para soft delete de oficinas
   - _Requirements: 1.1, 9.3_
 
-- [ ] 7. Integrar soft delete en modelo BienPatrimonial
+- [x] 7. Integrar soft delete en modelo BienPatrimonial
+
+
+
+
+
   - Actualizar modelo BienPatrimonial para usar soft delete
   - Manejar relaciones con oficinas eliminadas lógicamente
   - Actualizar consultas existentes para excluir bienes eliminados
   - Crear validaciones para cascada de eliminación
   - _Requirements: 1.4, 9.3_
 
-- [ ] 8. Integrar soft delete en modelo Catalogo
+- [x] 8. Integrar soft delete en modelo Catalogo
+
+
+
+
+
   - Implementar soft delete en modelo Catalogo
   - Validar que bienes no queden huérfanos al eliminar catálogo
   - Actualizar importaciones para manejar catálogos eliminados
   - Crear tests de integridad referencial
   - _Requirements: 1.4, 9.3_
 
-- [ ] 9. Actualizar vistas existentes para usar soft delete
+- [x] 9. Actualizar vistas existentes para usar soft delete
+
+
+
+
+
   - Modificar vistas de eliminación en apps/oficinas/views.py
   - Actualizar vistas de bienes para usar soft delete
   - Modificar vistas de catálogo para eliminación lógica
@@ -114,6 +134,7 @@
 ## Fase 3: Interfaz de Papelera Centralizada
 
 - [ ] 10. Crear vistas principales de papelera
+
   - Implementar RecycleBinListView con paginación y filtros
   - Crear RecycleBinDetailView para vista previa de objetos eliminados
   - Implementar RestoreView para restauración individual

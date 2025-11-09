@@ -660,7 +660,7 @@ def desactivar_oficina_view(request, oficina_id):
 @permission_required('oficinas.delete_oficina', raise_exception=True)
 @require_http_methods(["POST"])
 def eliminar_oficina_view(request, oficina_id):
-    """Vista para eliminar una oficina via AJAX"""
+    """Vista para eliminar una oficina via AJAX (soft delete)"""
     try:
         oficina = get_object_or_404(Oficina, id=oficina_id)
         
@@ -677,12 +677,45 @@ def eliminar_oficina_view(request, oficina_id):
         nombre_oficina = oficina.nombre
         codigo_oficina = oficina.codigo
         
-        # Eliminar la oficina
-        oficina.delete()
+        # Obtener motivo de eliminación si se proporciona
+        deletion_reason = request.POST.get('deletion_reason', 'Eliminación desde interfaz web')
+        
+        # Usar soft delete en lugar de eliminación física
+        oficina.soft_delete(user=request.user, reason=deletion_reason)
+        
+        # Crear entrada en RecycleBin
+        from apps.core.models import RecycleBin
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        content_type = ContentType.objects.get_for_model(Oficina)
+        
+        # Obtener configuración de retención
+        from apps.core.models import RecycleBinConfig
+        config = RecycleBinConfig.get_config_for_module('oficinas')
+        auto_delete_at = timezone.now() + timedelta(days=config.retention_days)
+        
+        # Crear entrada en papelera
+        RecycleBin.objects.create(
+            content_type=content_type,
+            object_id=oficina.id,
+            object_repr=f"{codigo_oficina} - {nombre_oficina}",
+            module_name='oficinas',
+            deleted_by=request.user,
+            deletion_reason=deletion_reason,
+            auto_delete_at=auto_delete_at,
+            original_data={
+                'codigo': oficina.codigo,
+                'nombre': oficina.nombre,
+                'responsable': oficina.responsable,
+                'estado': oficina.estado
+            }
+        )
         
         return JsonResponse({
             'success': True,
-            'message': f'La oficina "{nombre_oficina}" ({codigo_oficina}) ha sido eliminada exitosamente.'
+            'message': f'La oficina "{nombre_oficina}" ({codigo_oficina}) ha sido movida a la papelera de reciclaje.'
         })
         
     except Exception as e:
