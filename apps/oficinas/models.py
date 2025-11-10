@@ -164,8 +164,17 @@ class Oficina(BaseModel):
         ).order_by('nombre')
     
     def puede_eliminarse(self):
-        """Verifica si la oficina puede eliminarse"""
-        return self.total_bienes == 0
+        """
+        Verifica si la oficina puede eliminarse.
+        Una oficina puede eliminarse (soft delete) si no tiene bienes activos asignados.
+        Los bienes eliminados (soft deleted) no impiden la eliminación.
+        """
+        # Importar aquí para evitar importación circular
+        from apps.bienes.models import BienPatrimonial
+        
+        # Contar solo bienes activos (no eliminados)
+        bienes_activos = BienPatrimonial.objects.filter(oficina=self).count()
+        return bienes_activos == 0
     
     def desactivar(self):
         """Desactiva la oficina"""
@@ -176,6 +185,30 @@ class Oficina(BaseModel):
         """Activa la oficina"""
         self.estado = True
         self.save()
+    
+    def delete(self, using=None, keep_parents=False, user=None, reason=''):
+        """
+        Sobrescribe el método delete para usar soft_delete automáticamente.
+        
+        Args:
+            using: Base de datos a usar (parámetro estándar de Django)
+            keep_parents: Mantener padres (parámetro estándar de Django)
+            user: Usuario que realiza la eliminación
+            reason: Motivo de la eliminación
+            
+        Returns:
+            bool: True si se eliminó correctamente, False si ya estaba eliminado
+        """
+        # Validar que puede eliminarse antes de proceder
+        if not self.puede_eliminarse():
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                'No se puede eliminar la oficina porque tiene bienes patrimoniales asignados. '
+                'Primero debe reasignar o eliminar los bienes.'
+            )
+        
+        # Usar soft delete del mixin
+        return self.soft_delete(user=user, reason=reason)
 
 
 class HistorialOficina(models.Model):

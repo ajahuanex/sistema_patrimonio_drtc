@@ -1,0 +1,68 @@
+{% extends "notificaciones/email_base.html" %}
+
+{% block content %}
+<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+    <h2 style="color: #856404; margin-top: 0;">⚠️ Advertencia de Eliminación Automática</h2>
+    <p style="color: #856404; font-size: 16px;">
+        Tienes elementos en la papelera de reciclaje que serán eliminados permanentemente pronto.
+    </p>
+</div>
+
+<div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #333; margin-top: 0;">Resumen de Elementos</h3>
+    
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <thead>
+            <tr style="background-color: #e9ecef;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Módulo</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Cantidad</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Días Restantes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in datos_contexto.items_by_module %}
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">{{ item.module_display }}</td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">
+                    <strong>{{ item.count }}</strong>
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">
+                    <span style="color: {% if item.days_remaining <= 1 %}#dc3545{% elif item.days_remaining <= 3 %}#fd7e14{% else %}#ffc107{% endif %}; font-weight: bold;">
+                        {{ item.days_remaining }} día{{ item.days_remaining|pluralize }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 20px; padding: 15px; background-color: #fff; border-radius: 5px; border: 1px solid #dee2e6;">
+        <p style="margin: 0; color: #666;">
+            <strong>Total de elementos:</strong> {{ datos_contexto.total_items }}
+        </p>
+    </div>
+</div>
+
+<div style="background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #0c5460; margin-top: 0;">💡 ¿Qué puedes hacer?</h3>
+    <ul style="color: #0c5460; line-height: 1.8;">
+        <li><strong>Restaurar elementos:</strong> Si necesitas recuperar algún elemento, accede a la papelera y restáuralo antes de que se elimine permanentemente.</li>
+        <li><strong>Revisar elementos:</strong> Verifica que no haya información importante que necesites conservar.</li>
+        <li><strong>Dejar que se eliminen:</strong> Si no necesitas estos elementos, se eliminarán automáticamente en los días indicados.</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ base_url }}/core/recycle-bin/" 
+       style="display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        Ver Papelera de Reciclaje
+    </a>
+</div>
+
+<div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; font-size: 14px; color: #666;">
+    <p style="margin: 0;">
+        <strong>Nota:</strong> Esta es una notificación automática del sistema de gestión de patrimonio. 
+        Los elementos en la papelera se eliminan permanentemente después de {{ datos_contexto.retention_days }} días.
+    </p>
+</div>
+{% endblock %}

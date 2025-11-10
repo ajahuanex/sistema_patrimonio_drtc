@@ -16,6 +16,127 @@ from .forms import CatalogoForm
 
 
 @login_required
+@permission_required('catalogo.view_catalogo', raise_exception=True)
+def descargar_plantilla_catalogo(request):
+    """Vista para descargar plantilla de ejemplo para importación de catálogo"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.utils import timezone
+    
+    # Crear workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Catálogo"
+    
+    # Encabezados
+    headers = ['CATÁLOGO', 'Denominación', 'Grupo', 'Clase', 'Resolución', 'Estado']
+    ws.append(headers)
+    
+    # Estilo para encabezados
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+    
+    # Datos de ejemplo
+    ejemplos = [
+        ['04220001', 'TRACTOR AGRICOLA', '04 AGRICOLA Y PESQUERO', '22 EQUIPO', 'R.D. N° 001-2020', 'ACTIVO'],
+        ['05220002', 'COMPUTADORA PERSONAL', '05 EQUIPAMIENTO', '22 EQUIPO', 'R.D. N° 002-2020', 'ACTIVO'],
+        ['06220003', 'ESCRITORIO DE MADERA', '06 MOBILIARIO', '22 EQUIPO', 'R.D. N° 003-2020', 'ACTIVO'],
+        ['07220004', 'VEHICULO AUTOMOVIL', '07 TRANSPORTE', '22 EQUIPO', 'R.D. N° 004-2020', 'ACTIVO'],
+        ['08220005', 'IMPRESORA LASER', '08 MAQUINARIA', '22 EQUIPO', 'R.D. N° 005-2020', 'EXCLUIDO'],
+    ]
+    
+    for ejemplo in ejemplos:
+        ws.append(ejemplo)
+    
+    # Ajustar ancho de columnas
+    column_widths = {
+        'A': 15,  # CATÁLOGO
+        'B': 40,  # Denominación
+        'C': 30,  # Grupo
+        'D': 20,  # Clase
+        'E': 25,  # Resolución
+        'F': 12,  # Estado
+    }
+    
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = width
+    
+    # Agregar instrucciones en una hoja separada
+    ws_instrucciones = wb.create_sheet("Instrucciones")
+    
+    instrucciones = [
+        ["INSTRUCCIONES PARA IMPORTAR CATÁLOGO"],
+        [""],
+        ["1. ESTRUCTURA DEL ARCHIVO"],
+        ["   - El archivo debe contener las siguientes columnas (en cualquier orden):"],
+        ["     * CATÁLOGO: Código único de 8 dígitos"],
+        ["     * Denominación: Nombre del bien (máximo 200 caracteres)"],
+        ["     * Grupo: Grupo del catálogo (ej: 04 AGRICOLA Y PESQUERO)"],
+        ["     * Clase: Clase del catálogo (ej: 22 EQUIPO)"],
+        ["     * Resolución: Resolución que aprueba el bien"],
+        ["     * Estado: ACTIVO o EXCLUIDO"],
+        [""],
+        ["2. REGLAS DE VALIDACIÓN"],
+        ["   - Los códigos de catálogo deben ser únicos"],
+        ["   - Las denominaciones deben ser únicas"],
+        ["   - El código debe tener exactamente 8 dígitos"],
+        ["   - El estado solo puede ser ACTIVO o EXCLUIDO"],
+        [""],
+        ["3. PROCESO DE IMPORTACIÓN"],
+        ["   - Elimine estas filas de ejemplo antes de importar"],
+        ["   - Complete sus datos en la hoja 'Plantilla Catálogo'"],
+        ["   - Guarde el archivo en formato .xlsx o .xls"],
+        ["   - Use el botón 'Validar' antes de importar"],
+        ["   - Si la validación es exitosa, proceda con la importación"],
+        [""],
+        ["4. ACTUALIZACIÓN DE REGISTROS EXISTENTES"],
+        ["   - Si marca 'Actualizar registros existentes':"],
+        ["     Los registros con códigos existentes serán actualizados"],
+        ["   - Si no marca la opción:"],
+        ["     Los registros con códigos existentes serán omitidos"],
+        [""],
+        ["5. EJEMPLOS DE CÓDIGOS"],
+        ["   - 04220001: Grupo 04, Clase 22, Correlativo 0001"],
+        ["   - 05220002: Grupo 05, Clase 22, Correlativo 0002"],
+        ["   - Los primeros 2 dígitos indican el grupo"],
+        ["   - Los siguientes 2 dígitos indican la clase"],
+        ["   - Los últimos 4 dígitos son el correlativo"],
+    ]
+    
+    for row_data in instrucciones:
+        ws_instrucciones.append(row_data)
+    
+    # Estilo para el título de instrucciones
+    ws_instrucciones['A1'].font = Font(bold=True, size=14, color="366092")
+    ws_instrucciones.column_dimensions['A'].width = 80
+    
+    # Preparar respuesta
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"plantilla_catalogo_{timezone.now().strftime('%Y%m%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
+
+
+@login_required
 @permission_required('catalogo.add_catalogo', raise_exception=True)
 def importar_catalogo_view(request):
     """Vista para importar catálogo desde Excel"""
@@ -40,7 +161,13 @@ def importar_catalogo_view(request):
                 temp_path = temp_file.name
             
             # Procesar archivo
-            resultado = importar_catalogo_desde_excel(temp_path, actualizar_existentes)
+            resultado = importar_catalogo_desde_excel(
+                temp_path, 
+                actualizar_existentes,
+                usuario=request.user,
+                archivo_nombre=archivo.name,
+                permitir_duplicados_denominacion=True  # Permitir denominaciones duplicadas
+            )
             
             # Limpiar archivo temporal
             os.unlink(temp_path)
@@ -52,6 +179,14 @@ def importar_catalogo_view(request):
                 # Mostrar advertencias si las hay
                 for warning in resultado['warnings']:
                     messages.warning(request, warning)
+                
+                # Mostrar observaciones si las hay
+                if resultado['total_observaciones'] > 0:
+                    messages.info(
+                        request, 
+                        f"Se registraron {resultado['total_observaciones']} observaciones durante la importación. "
+                        f"Puedes revisarlas en el panel de administración."
+                    )
             else:
                 messages.error(request, "Error en la importación:")
                 for error in resultado['errores']:

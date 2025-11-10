@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Catalogo
+from django.utils import timezone
+from .models import Catalogo, ImportObservation
 
 
 @admin.register(Catalogo)
@@ -106,3 +107,181 @@ class CatalogoAdmin(admin.ModelAdmin):
             f'{updated} bienes fueron excluidos exitosamente.'
         )
     excluir_bienes.short_description = "Excluir bienes seleccionados"
+
+
+
+@admin.register(ImportObservation)
+class ImportObservationAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'modulo_badge',
+        'tipo_badge',
+        'severidad_badge',
+        'fila_excel',
+        'campo',
+        'mensaje_truncado',
+        'fecha_importacion',
+        'resuelto_badge',
+        'usuario'
+    ]
+    list_filter = [
+        'modulo',
+        'tipo',
+        'severidad',
+        'resuelto',
+        'fecha_importacion'
+    ]
+    search_fields = [
+        'mensaje',
+        'campo',
+        'valor_original',
+        'archivo_nombre'
+    ]
+    readonly_fields = [
+        'modulo',
+        'tipo',
+        'severidad',
+        'fila_excel',
+        'campo',
+        'valor_original',
+        'valor_procesado',
+        'mensaje',
+        'datos_adicionales',
+        'fecha_importacion',
+        'usuario',
+        'archivo_nombre'
+    ]
+    list_per_page = 50
+    ordering = ['-fecha_importacion', 'fila_excel']
+    date_hierarchy = 'fecha_importacion'
+    
+    fieldsets = (
+        ('Información de la Observación', {
+            'fields': ('modulo', 'tipo', 'severidad', 'fila_excel', 'campo')
+        }),
+        ('Valores', {
+            'fields': ('valor_original', 'valor_procesado', 'mensaje')
+        }),
+        ('Datos Adicionales', {
+            'fields': ('datos_adicionales',),
+            'classes': ('collapse',)
+        }),
+        ('Información de Importación', {
+            'fields': ('fecha_importacion', 'usuario', 'archivo_nombre')
+        }),
+        ('Resolución', {
+            'fields': ('resuelto', 'resuelto_por', 'fecha_resolucion', 'notas_resolucion')
+        }),
+    )
+    
+    def modulo_badge(self, obj):
+        """Muestra el módulo con color"""
+        colors = {
+            'catalogo': '#3498db',
+            'bienes': '#2ecc71',
+            'oficinas': '#9b59b6'
+        }
+        color = colors.get(obj.modulo, '#95a5a6')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
+            color,
+            obj.get_modulo_display()
+        )
+    modulo_badge.short_description = 'Módulo'
+    
+    def tipo_badge(self, obj):
+        """Muestra el tipo con color"""
+        colors = {
+            'duplicado_denominacion': '#f39c12',
+            'dato_incompleto': '#e74c3c',
+            'formato_invalido': '#e67e22',
+            'referencia_faltante': '#c0392b',
+            'otro': '#95a5a6'
+        }
+        color = colors.get(obj.tipo, '#95a5a6')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
+            color,
+            obj.get_tipo_display()
+        )
+    tipo_badge.short_description = 'Tipo'
+    
+    def severidad_badge(self, obj):
+        """Muestra la severidad con color"""
+        colors = {
+            'info': '#3498db',
+            'warning': '#f39c12',
+            'error': '#e74c3c'
+        }
+        icons = {
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'error': '❌'
+        }
+        color = colors.get(obj.severidad, '#95a5a6')
+        icon = icons.get(obj.severidad, '•')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">{} {}</span>',
+            color,
+            icon,
+            obj.get_severidad_display()
+        )
+    severidad_badge.short_description = 'Severidad'
+    
+    def mensaje_truncado(self, obj):
+        """Muestra el mensaje truncado"""
+        if len(obj.mensaje) > 60:
+            return f"{obj.mensaje[:60]}..."
+        return obj.mensaje
+    mensaje_truncado.short_description = 'Mensaje'
+    
+    def resuelto_badge(self, obj):
+        """Muestra el estado de resolución"""
+        if obj.resuelto:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✓ Resuelto</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ Pendiente</span>'
+            )
+    resuelto_badge.short_description = 'Estado'
+    
+    actions = ['marcar_como_resuelto', 'marcar_como_pendiente']
+    
+    def marcar_como_resuelto(self, request, queryset):
+        """Marca observaciones como resueltas"""
+        for obs in queryset:
+            if not obs.resuelto:
+                obs.marcar_como_resuelto(
+                    usuario=request.user,
+                    notas='Marcado como resuelto desde el admin'
+                )
+        count = queryset.filter(resuelto=True).count()
+        self.message_user(
+            request,
+            f'{count} observación(es) marcada(s) como resuelta(s).'
+        )
+    marcar_como_resuelto.short_description = "Marcar como resuelto"
+    
+    def marcar_como_pendiente(self, request, queryset):
+        """Marca observaciones como pendientes"""
+        updated = queryset.update(
+            resuelto=False,
+            resuelto_por=None,
+            fecha_resolucion=None,
+            notas_resolucion=''
+        )
+        self.message_user(
+            request,
+            f'{updated} observación(es) marcada(s) como pendiente(s).'
+        )
+    marcar_como_pendiente.short_description = "Marcar como pendiente"
+    
+    def has_add_permission(self, request):
+        """No permitir agregar observaciones manualmente"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Solo administradores pueden eliminar observaciones"""
+        return request.user.is_superuser

@@ -1,0 +1,555 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reportes de Auditoría de Eliminaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .stats-card h3 {
+        margin-top: 0;
+        color: #366092;
+        font-size: 1.2em;
+        border-bottom: 2px solid #366092;
+        padding-bottom: 10px;
+    }
+    
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stat-label {
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .stat-value {
+        font-weight: bold;
+        color: #366092;
+    }
+    
+    .suspicious-pattern {
+        background: white;
+        border-left: 4px solid #dc3545;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .suspicious-pattern.severity-high {
+        border-left-color: #dc3545;
+        background-color: #fff5f5;
+    }
+    
+    .suspicious-pattern.severity-medium {
+        border-left-color: #ffc107;
+        background-color: #fffbf0;
+    }
+    
+    .suspicious-pattern.severity-low {
+        border-left-color: #17a2b8;
+        background-color: #f0f9ff;
+    }
+    
+    .pattern-icon {
+        font-size: 1.5em;
+        margin-right: 10px;
+    }
+    
+    .pattern-message {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        min-height: 300px;
+    }
+    
+    .filter-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .filter-row {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+    
+    .filter-field {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-field label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .filter-field input,
+    .filter-field select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-export {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-export-excel {
+        background-color: #217346;
+        color: white;
+    }
+    
+    .btn-export-pdf {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-export:hover {
+        opacity: 0.9;
+    }
+    
+    .audit-log-table {
+        width: 100%;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .audit-log-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .audit-log-table th {
+        background-color: #366092;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 500;
+    }
+    
+    .audit-log-table td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .audit-log-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .action-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    .action-soft-delete {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .action-restore {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .action-permanent-delete {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .success-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    .success-yes {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .success-no {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>📊 Reportes de Auditoría de Eliminaciones</h1>
+            <p class="text-muted">Análisis completo de operaciones de eliminación, restauración y patrones sospechosos</p>
+        </div>
+    </div>
+    
+    <!-- Patrones Sospechosos -->
+    {% if suspicious_patterns %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="stats-card">
+                <h3>⚠️ Patrones Sospechosos Detectados</h3>
+                {% for pattern in suspicious_patterns %}
+                <div class="suspicious-pattern severity-{{ pattern.severity }}">
+                    <span class="pattern-icon">{{ pattern.icon }}</span>
+                    <span class="pattern-message">{{ pattern.message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Estadísticas Generales -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>📈 Estadísticas Generales</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Total de Operaciones</span>
+                    <span class="stat-value">{{ total_logs }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Operaciones Exitosas</span>
+                    <span class="stat-value text-success">{{ successful_operations }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Operaciones Fallidas</span>
+                    <span class="stat-value text-danger">{{ failed_operations }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>🎯 Por Acción</h3>
+                {% for stat in action_stats %}
+                <div class="stat-item">
+                    <span class="stat-label">{{ stat.action|title }}</span>
+                    <span class="stat-value">{{ stat.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h3>📦 Por Módulo</h3>
+                {% for stat in module_stats %}
+                <div class="stat-item">
+                    <span class="stat-label">{{ stat.module_name|title }}</span>
+                    <span class="stat-value">{{ stat.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Tendencias -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-container">
+                <h3>📊 Tendencias de Eliminaciones (Últimos 30 Días)</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="filter-section">
+                <h3>🔍 Filtros de Búsqueda</h3>
+                <form method="get" action="{% url 'core:deletion_audit_reports' %}">
+                    <div class="filter-row">
+                        <div class="filter-field">
+                            <label for="user">Usuario</label>
+                            <input type="text" id="user" name="user" value="{{ user_filter }}" placeholder="Nombre de usuario">
+                        </div>
+                        
+                        <div class="filter-field">
+                            <label for="action">Acción</label>
+                            <select id="action" name="action">
+                                <option value="">Todas</option>
+                                {% for value, label in action_choices %}
+                                <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-field">
+                            <label for="module">Módulo</label>
+                            <input type="text" id="module" name="module" value="{{ module_filter }}" placeholder="Nombre del módulo">
+                        </div>
+                        
+                        <div class="filter-field">
+                            <label for="success">Estado</label>
+                            <select id="success" name="success">
+                                <option value="">Todos</option>
+                                <option value="true" {% if success_filter == 'true' %}selected{% endif %}>Exitoso</option>
+                                <option value="false" {% if success_filter == 'false' %}selected{% endif %}>Fallido</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-row">
+                        <div class="filter-field">
+                            <label for="date_from">Fecha Desde</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+                        </div>
+                        
+                        <div class="filter-field">
+                            <label for="date_to">Fecha Hasta</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+                        </div>
+                        
+                        <div class="filter-field">
+                            <label for="search">Búsqueda</label>
+                            <input type="text" id="search" name="search" value="{{ search_query }}" placeholder="Buscar en objeto, motivo...">
+                        </div>
+                        
+                        <div class="filter-field" style="display: flex; align-items: flex-end;">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Aplicar Filtros</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Botones de Exportación -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="export-buttons">
+                <a href="{% url 'core:deletion_audit_export' %}?format=excel&{{ request.GET.urlencode }}" class="btn-export btn-export-excel">
+                    📊 Exportar a Excel
+                </a>
+                <a href="{% url 'core:deletion_audit_export' %}?format=pdf&{{ request.GET.urlencode }}" class="btn-export btn-export-pdf">
+                    📄 Exportar a PDF
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Logs -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="audit-log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Módulo</th>
+                            <th>Objeto</th>
+                            <th>Exitoso</th>
+                            <th>IP</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in page_obj %}
+                        <tr>
+                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>{{ log.user.username }}</td>
+                            <td>
+                                <span class="action-badge action-{{ log.action }}">
+                                    {{ log.get_action_display }}
+                                </span>
+                            </td>
+                            <td>{{ log.module_name }}</td>
+                            <td>{{ log.object_repr|truncatechars:50 }}</td>
+                            <td>
+                                <span class="success-badge success-{% if log.success %}yes{% else %}no{% endif %}">
+                                    {% if log.success %}✓ Sí{% else %}✗ No{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ log.ip_address|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'core:deletion_audit_detail' log.id %}" class="btn btn-sm btn-info">Ver Detalle</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px;">
+                                No se encontraron registros de auditoría con los filtros aplicados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1&{{ request.GET.urlencode }}">Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">Última</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Datos de tendencias desde el servidor
+    const trendData = {{ trend_by_action|safe }};
+    
+    // Preparar datos para Chart.js
+    const allDates = new Set();
+    Object.values(trendData).forEach(actionData => {
+        actionData.forEach(item => allDates.add(item.date));
+    });
+    
+    const sortedDates = Array.from(allDates).sort();
+    
+    const datasets = [];
+    const colors = {
+        'soft_delete': '#ffc107',
+        'restore': '#28a745',
+        'permanent_delete': '#dc3545',
+        'auto_delete': '#6c757d',
+        'bulk_restore': '#17a2b8',
+        'bulk_delete': '#fd7e14',
+        'failed_restore': '#e83e8c',
+        'failed_delete': '#6610f2'
+    };
+    
+    const labels = {
+        'soft_delete': 'Eliminación Lógica',
+        'restore': 'Restauración',
+        'permanent_delete': 'Eliminación Permanente',
+        'auto_delete': 'Eliminación Automática',
+        'bulk_restore': 'Restauración en Lote',
+        'bulk_delete': 'Eliminación en Lote',
+        'failed_restore': 'Restauración Fallida',
+        'failed_delete': 'Eliminación Fallida'
+    };
+    
+    Object.keys(trendData).forEach(action => {
+        const dataMap = {};
+        trendData[action].forEach(item => {
+            dataMap[item.date] = item.count;
+        });
+        
+        const data = sortedDates.map(date => dataMap[date] || 0);
+        
+        datasets.push({
+            label: labels[action] || action,
+            data: data,
+            borderColor: colors[action] || '#6c757d',
+            backgroundColor: colors[action] || '#6c757d',
+            tension: 0.1
+        });
+    });
+    
+    // Crear gráfico
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sortedDates,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

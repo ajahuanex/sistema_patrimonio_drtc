@@ -442,3 +442,277 @@ def crear_notificacion_sistema(usuario_id, titulo, mensaje, prioridad='MEDIA', d
     except Exception as e:
         logger.error(f"Error creando notificación del sistema: {str(e)}")
         raise
+
+
+
+@shared_task
+def verificar_alertas_papelera():
+    """
+    Verifica elementos en papelera próximos a eliminación automática
+    y envía notificaciones de advertencia
+    """
+    try:
+        from apps.core.models import RecycleBin, RecycleBinConfig
+        from django.db.models import Count, Min
+        
+        # Obtener configuraciones de módulos
+        configs = RecycleBinConfig.objects.filter(auto_delete_enabled=True)
+        
+        alertas_generadas = 0
+        
+        for config in configs:
+            # Calcular fechas de advertencia
+            warning_date = timezone.now() + timedelta(days=config.warning_days_before)
+            final_warning_date = timezone.now() + timedelta(days=config.final_warning_days_before)
+            
+            # Buscar elementos que necesitan advertencia (7 días antes)
+            items_warning = RecycleBin.objects.filter(
+                module_name=config.module_name,
+                restored_at__isnull=True,
+                auto_delete_at__lte=warning_date,
+                auto_delete_at__gt=final_warning_date
+            )
+            
+            # Buscar elementos que necesitan advertencia final (1 día antes)
+            items_final_warning = RecycleBin.objects.filter(
+                module_name=config.module_name,
+                restored_at__isnull=True,
+                auto_delete_at__lte=final_warning_date,
+                auto_delete_at__gt=timezone.now()
+            )
+            
+            # Agrupar por usuario para enviar notificaciones consolidadas
+            if items_warning.exists():
+                alertas_generadas += enviar_notificaciones_advertencia(
+                    items_warning, 
+                    config, 
+                    tipo='warning'
+                )
+            
+            if items_final_warning.exists():
+                alertas_generadas += enviar_notificaciones_advertencia(
+                    items_final_warning, 
+                    config, 
+                    tipo='final_warning'
+                )
+        
+        logger.info(f"Se generaron {alertas_generadas} alertas de papelera")
+        
+        return {'alertas_generadas': alertas_generadas}
+        
+    except Exception as e:
+        logger.error(f"Error verificando alertas de papelera: {str(e)}")
+        raise
+
+
+def enviar_notificaciones_advertencia(items_queryset, config, tipo='warning'):
+    """
+    Envía notificaciones de advertencia agrupadas por usuario
+    
+    Args:
+        items_queryset: QuerySet de elementos en papelera
+        config: Configuración del módulo
+        tipo: 'warning' o 'final_warning'
+    
+    Returns:
+        int: Número de notificaciones enviadas
+    """
+    from apps.core.models import RecycleBin
+    from django.db.models import Count
+    
+    # Agrupar elementos por usuario que los eliminó
+    usuarios_items = {}
+    
+    for item in items_queryset:
+        user_id = item.deleted_by.id
+        if user_id not in usuarios_items:
+            usuarios_items[user_id] = {
+                'user': item.deleted_by,
+                'items': []
+            }
+        usuarios_items[user_id]['items'].append(item)
+    
+    notificaciones_enviadas = 0
+    
+    for user_id, data in usuarios_items.items():
+        usuario = data['user']
+        items = data['items']
+        
+        # Verificar preferencias de notificación del usuario
+        tipo_codigo = 'RECYCLE_FINAL_WARNING' if tipo == 'final_warning' else 'RECYCLE_WARNING'
+        
+        # Verificar si ya existe una notificación reciente del mismo tipo
+        dias_verificacion = 1 if tipo == 'final_warning' else 7
+        notificacion_existente = Notificacion.objects.filter(
+            usuario=usuario,
+            tipo_notificacion__codigo=tipo_codigo,
+            created_at__gte=timezone.now() - timedelta(days=dias_verificacion)
+        ).exists()
+        
+        if notificacion_existente:
+            logger.info(f"Usuario {usuario.username} ya tiene notificación reciente de tipo {tipo_codigo}")
+            continue
+        
+        # Verificar configuración del usuario
+        try:
+            tipo_notificacion = TipoNotificacion.objects.get(codigo=tipo_codigo)
+        except TipoNotificacion.DoesNotExist:
+            logger.warning(f"Tipo de notificación {tipo_codigo} no existe")
+            continue
+        
+        config_usuario = ConfiguracionNotificacion.objects.filter(
+            usuario=usuario,
+            tipo_notificacion=tipo_notificacion
+        ).first()
+        
+        if config_usuario and not config_usuario.activa:
+            logger.info(f"Usuario {usuario.username} tiene deshabilitadas notificaciones de {tipo_codigo}")
+            continue
+        
+        # Preparar datos del contexto
+        items_by_module = {}
+        total_items = len(items)
+        sample_items = []
+        
+        for item in items:
+            module_display = item.get_module_display()
+            if module_display not in items_by_module:
+                items_by_module[module_display] = {
+                    'module_display': module_display,
+                    'count': 0,
+                    'days_remaining': item.days_until_auto_delete,
+                    'hours_remaining': max(0, int((item.auto_delete_at - timezone.now()).total_seconds() / 3600))
+                }
+            items_by_module[module_display]['count'] += 1
+            
+            # Agregar ejemplos (máximo 5)
+            if len(sample_items) < 5:
+                sample_items.append({
+                    'module_display': module_display,
+                    'object_repr': item.object_repr,
+                    'deleted_at': item.deleted_at
+                })
+        
+        # Calcular horas hasta eliminación (para advertencia final)
+        min_hours = min([
+            int((item.auto_delete_at - timezone.now()).total_seconds() / 3600)
+            for item in items
+        ])
+        
+        datos_contexto = {
+            'items_by_module': list(items_by_module.values()),
+            'total_items': total_items,
+            'retention_days': config.retention_days,
+            'sample_items': sample_items,
+            'hours_until_deletion': max(0, min_hours),
+            'module_name': config.module_name,
+            'module_display': config.get_module_name_display()
+        }
+        
+        # Determinar título y mensaje según el tipo
+        if tipo == 'final_warning':
+            titulo = f"🚨 ADVERTENCIA FINAL: {total_items} elemento(s) se eliminarán en 24 horas"
+            mensaje = f"Tienes {total_items} elemento(s) en la papelera que serán eliminados permanentemente en las próximas 24 horas. Esta es tu última oportunidad para restaurarlos."
+            prioridad = 'CRITICA'
+            dias_expiracion = 1
+        else:
+            titulo = f"⚠️ Advertencia: {total_items} elemento(s) se eliminarán en {config.warning_days_before} días"
+            mensaje = f"Tienes {total_items} elemento(s) en la papelera que serán eliminados permanentemente en {config.warning_days_before} días. Revisa y restaura los que necesites conservar."
+            prioridad = 'ALTA'
+            dias_expiracion = config.warning_days_before
+        
+        # Crear notificación
+        notificacion = Notificacion.objects.create(
+            usuario=usuario,
+            tipo_notificacion=tipo_notificacion,
+            titulo=titulo,
+            mensaje=mensaje,
+            prioridad=prioridad,
+            datos_contexto=datos_contexto,
+            url_accion='/core/recycle-bin/',
+            fecha_expiracion=timezone.now() + timedelta(days=dias_expiracion)
+        )
+        
+        notificaciones_enviadas += 1
+        logger.info(f"Notificación de papelera ({tipo}) creada para usuario {usuario.username}: {total_items} elementos")
+    
+    return notificaciones_enviadas
+
+
+@shared_task
+def notificar_eliminacion_automatica(recycle_bin_ids):
+    """
+    Notifica a los usuarios sobre elementos que fueron eliminados automáticamente
+    
+    Args:
+        recycle_bin_ids: Lista de IDs de RecycleBin que fueron eliminados
+    """
+    try:
+        from apps.core.models import RecycleBin
+        
+        # Agrupar por usuario
+        usuarios_items = {}
+        
+        for rb_id in recycle_bin_ids:
+            try:
+                # Intentar obtener información del log antes de que se elimine
+                # (esta función se llama antes de la eliminación física)
+                item = RecycleBin.objects.get(id=rb_id)
+                user_id = item.deleted_by.id
+                
+                if user_id not in usuarios_items:
+                    usuarios_items[user_id] = {
+                        'user': item.deleted_by,
+                        'items': []
+                    }
+                
+                usuarios_items[user_id]['items'].append({
+                    'module': item.get_module_display(),
+                    'object_repr': item.object_repr,
+                    'deleted_at': item.deleted_at
+                })
+            except RecycleBin.DoesNotExist:
+                continue
+        
+        # Enviar notificaciones
+        for user_id, data in usuarios_items.items():
+            usuario = data['user']
+            items = data['items']
+            total_items = len(items)
+            
+            # Agrupar por módulo
+            items_by_module = {}
+            for item in items:
+                module = item['module']
+                if module not in items_by_module:
+                    items_by_module[module] = 0
+                items_by_module[module] += 1
+            
+            tipo_notificacion = TipoNotificacion.objects.get(codigo='SISTEMA')
+            
+            mensaje_modulos = ', '.join([
+                f"{count} de {module}"
+                for module, count in items_by_module.items()
+            ])
+            
+            Notificacion.objects.create(
+                usuario=usuario,
+                tipo_notificacion=tipo_notificacion,
+                titulo=f"Eliminación automática: {total_items} elemento(s) eliminados",
+                mensaje=f"Se han eliminado permanentemente {total_items} elemento(s) de la papelera: {mensaje_modulos}. Estos elementos cumplieron su período de retención.",
+                prioridad='MEDIA',
+                datos_contexto={
+                    'items_by_module': items_by_module,
+                    'total_items': total_items,
+                    'items_sample': items[:5]  # Primeros 5 como muestra
+                },
+                fecha_expiracion=timezone.now() + timedelta(days=30)
+            )
+            
+            logger.info(f"Notificación de eliminación automática enviada a {usuario.username}: {total_items} elementos")
+        
+        return {'usuarios_notificados': len(usuarios_items)}
+        
+    except Exception as e:
+        logger.error(f"Error notificando eliminación automática: {str(e)}")
+        raise

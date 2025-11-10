@@ -37,12 +37,15 @@ class OficinaImporter:
     
     @staticmethod
     def normalizar_texto(texto):
-        """Normaliza texto removiendo acentos, espacios extra y convirtiendo a mayúsculas"""
+        """Normaliza texto removiendo acentos, espacios extra, asteriscos y convirtiendo a mayúsculas"""
         if not texto:
             return ''
         
         # Convertir a string y limpiar
         texto = str(texto).strip()
+        
+        # Remover asteriscos y otros caracteres especiales
+        texto = texto.replace('*', '').replace(':', '').strip()
         
         # Remover acentos
         texto_sin_acentos = unicodedata.normalize('NFD', texto)
@@ -62,20 +65,7 @@ class OficinaImporter:
         self.fila_encabezados = 1  # Por defecto fila 1
     
     def detectar_fila_encabezados(self, sheet):
-        """Detecta automáticamente si los encabezados están en la fila 1 o 2"""
-        # Intentar con la primera fila
-        headers_fila_1 = []
-        for cell in sheet[1]:
-            if cell.value:
-                headers_fila_1.append(str(cell.value).strip())
-        
-        # Intentar con la segunda fila
-        headers_fila_2 = []
-        if sheet.max_row >= 2:
-            for cell in sheet[2]:
-                if cell.value:
-                    headers_fila_2.append(str(cell.value).strip())
-        
+        """Detecta automáticamente si los encabezados están en la fila 1, 2 o 3"""
         # Función para contar coincidencias de columnas requeridas
         def contar_coincidencias(headers):
             coincidencias = 0
@@ -101,19 +91,32 @@ class OficinaImporter:
                             break
             return coincidencias
         
-        # Evaluar qué fila tiene más coincidencias
-        coincidencias_fila_1 = contar_coincidencias(headers_fila_1)
-        coincidencias_fila_2 = contar_coincidencias(headers_fila_2)
+        # Intentar con las primeras 3 filas
+        mejor_fila = 1
+        mejor_headers = []
+        mejor_coincidencias = 0
         
-        # Decidir qué fila usar
-        if coincidencias_fila_1 >= len(self.COLUMNAS_REQUERIDAS):
-            return 1, headers_fila_1
-        elif coincidencias_fila_2 >= len(self.COLUMNAS_REQUERIDAS):
-            return 2, headers_fila_2
-        elif coincidencias_fila_1 > coincidencias_fila_2:
-            return 1, headers_fila_1
-        else:
-            return 2, headers_fila_2 if headers_fila_2 else headers_fila_1
+        for fila_num in range(1, min(4, sheet.max_row + 1)):  # Probar filas 1, 2 y 3
+            headers = []
+            for cell in sheet[fila_num]:
+                if cell.value:
+                    headers.append(str(cell.value).strip())
+            
+            if headers:
+                coincidencias = contar_coincidencias(headers)
+                
+                # Si encontramos todas las columnas requeridas, usar esta fila
+                if coincidencias >= len(self.COLUMNAS_REQUERIDAS):
+                    return fila_num, headers
+                
+                # Guardar la mejor opción hasta ahora
+                if coincidencias > mejor_coincidencias:
+                    mejor_coincidencias = coincidencias
+                    mejor_fila = fila_num
+                    mejor_headers = headers
+        
+        # Retornar la mejor opción encontrada
+        return mejor_fila, mejor_headers
 
     def validar_archivo(self, archivo_path):
         """Valida que el archivo Excel tenga la estructura correcta"""
@@ -303,14 +306,23 @@ class OficinaImporter:
         """Procesa una fila individual del Excel"""
         # Extraer datos de la fila
         datos = {}
+        tiene_algun_dato = False
+        
         for col_name, col_index in indices_columnas.items():
             if col_index < len(row):
                 cell_value = row[col_index].value
-                datos[col_name] = str(cell_value).strip() if cell_value else ''
+                valor = str(cell_value).strip() if cell_value else ''
+                datos[col_name] = valor
+                if valor:  # Si hay algún valor, la fila tiene datos
+                    tiene_algun_dato = True
             else:
                 datos[col_name] = ''
         
-        # Validar datos requeridos
+        # Si la fila está completamente vacía, omitirla sin generar warning
+        if not tiene_algun_dato:
+            return
+        
+        # Validar datos requeridos (solo si la fila tiene algún dato)
         if not datos.get('CODIGO') or not datos.get('NOMBRE') or not datos.get('RESPONSABLE'):
             self.warnings.append(f"Fila {row_num}: Código, nombre o responsable vacíos, omitida")
             return

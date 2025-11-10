@@ -1,0 +1,505 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle - Papelera de Reciclaje{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recycle_bin.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/recycle_bin_forms.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'core:recycle_bin_list' %}">
+                    <i class="fas fa-trash-restore"></i> Papelera
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalle del Elemento</li>
+        </ol>
+    </nav>
+    
+    <!-- Header con estado visual -->
+    <div class="detail-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2">
+                    <i class="fas fa-info-circle"></i> Detalle del Elemento Eliminado
+                </h1>
+                <p class="mb-0">
+                    {% if entry.is_ready_for_auto_delete %}
+                        <span class="status-indicator danger"></span>
+                        <strong>Listo para eliminación automática</strong>
+                    {% elif entry.is_near_auto_delete %}
+                        <span class="status-indicator warning"></span>
+                        <strong>Próximo a eliminarse automáticamente</strong>
+                    {% else %}
+                        <span class="status-indicator success"></span>
+                        <strong>En papelera de reciclaje</strong>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'core:recycle_bin_list' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-database"></i> Información Completa
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Información General -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card info-card h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-info-circle"></i> Información General
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-box me-1"></i> Objeto:
+                                        </dt>
+                                        <dd class="col-sm-7"><strong>{{ entry.object_repr }}</strong></dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-layer-group me-1"></i> Módulo:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            <span class="badge bg-secondary">{{ entry.get_module_display }}</span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-tag me-1"></i> Tipo:
+                                        </dt>
+                                        <dd class="col-sm-7">{{ entry.content_type.model }}</dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-hashtag me-1"></i> ID:
+                                        </dt>
+                                        <dd class="col-sm-7"><code>{{ entry.object_id }}</code></dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-traffic-light me-1"></i> Estado:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            {% if entry.is_ready_for_auto_delete %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-circle"></i> Listo para eliminar
+                                                </span>
+                                            {% elif entry.is_near_auto_delete %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock"></i> Próximo a eliminar
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> En papelera
+                                                </span>
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información de Eliminación -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card info-card h-100">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-trash-alt"></i> Información de Eliminación
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-user me-1"></i> Eliminado por:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            <strong>{{ entry.deleted_by.get_full_name|default:entry.deleted_by.username }}</strong>
+                                            <br><small class="text-muted">@{{ entry.deleted_by.username }}</small>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="far fa-calendar-times me-1"></i> Fecha eliminación:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            <strong>{{ entry.deleted_at|date:"d/m/Y" }}</strong>
+                                            <br><small class="text-muted">{{ entry.deleted_at|date:"H:i:s" }}</small>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="far fa-calendar-check me-1"></i> Eliminación automática:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            <strong>{{ entry.auto_delete_at|date:"d/m/Y" }}</strong>
+                                            <br><small class="text-muted">{{ entry.auto_delete_at|date:"H:i:s" }}</small>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-hourglass-half me-1"></i> Días restantes:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            {% if entry.days_until_auto_delete == 0 %}
+                                                <span class="badge bg-danger fs-6">
+                                                    <i class="fas fa-exclamation-triangle"></i> Hoy
+                                                </span>
+                                            {% elif entry.days_until_auto_delete <= 7 %}
+                                                <span class="badge bg-warning fs-6">
+                                                    <i class="fas fa-clock"></i> {{ entry.days_until_auto_delete }} días
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-info fs-6">
+                                                    <i class="fas fa-calendar"></i> {{ entry.days_until_auto_delete }} días
+                                                </span>
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">
+                                            <i class="fas fa-comment-alt me-1"></i> Motivo:
+                                        </dt>
+                                        <dd class="col-sm-7">
+                                            {% if entry.deletion_reason %}
+                                                <em>"{{ entry.deletion_reason }}"</em>
+                                            {% else %}
+                                                <em class="text-muted">No especificado</em>
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista Previa de Datos -->
+                    {% if original_data %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card info-card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-database"></i> Vista Previa de Datos del Objeto
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Información:</strong> A continuación se muestran los datos almacenados del objeto eliminado.
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover data-preview-table">
+                                            <thead>
+                                                <tr>
+                                                    <th width="30%">
+                                                        <i class="fas fa-key me-1"></i> Campo
+                                                    </th>
+                                                    <th>
+                                                        <i class="fas fa-align-left me-1"></i> Valor
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for field, value in original_data.fields.items %}
+                                                <tr>
+                                                    <td><strong>{{ field }}</strong></td>
+                                                    <td>
+                                                        {% if value.repr %}
+                                                            <i class="fas fa-link me-1 text-primary"></i>
+                                                            {{ value.repr }} 
+                                                            <small class="text-muted">(ID: {{ value.pk }})</small>
+                                                        {% elif value %}
+                                                            {{ value }}
+                                                        {% else %}
+                                                            <em class="text-muted">
+                                                                <i class="fas fa-minus"></i> Sin valor
+                                                            </em>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Alertas y Conflictos -->
+                    {% if restore_conflicts %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-warning border-warning shadow-sm">
+                                <h5 class="alert-heading">
+                                    <i class="fas fa-exclamation-triangle"></i> Conflicto de Restauración Detectado
+                                </h5>
+                                <hr>
+                                <p class="mb-2">{{ restore_conflicts }}</p>
+                                <p class="mb-0">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Acción requerida:</strong> Debe resolver este conflicto antes de poder restaurar el elemento.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not original_object %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-danger border-danger shadow-sm">
+                                <h5 class="alert-heading">
+                                    <i class="fas fa-times-circle"></i> Objeto No Disponible
+                                </h5>
+                                <hr>
+                                <p class="mb-0">
+                                    El objeto original ya no existe en la base de datos. La restauración no es posible.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Acciones -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="action-card">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-tools"></i> Acciones Disponibles
+                                </h5>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if can_restore and not restore_conflicts and original_object %}
+                                    <button type="button" 
+                                            class="btn btn-success btn-lg" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#restoreModal">
+                                        <i class="fas fa-undo"></i> Restaurar Elemento
+                                    </button>
+                                    {% elif can_restore and original_object %}
+                                    <a href="{% url 'core:recycle_bin_restore' entry.id %}" class="btn btn-warning btn-lg">
+                                        <i class="fas fa-exclamation-triangle"></i> Restaurar (Resolver Conflictos)
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if is_admin %}
+                                    <button type="button" 
+                                            class="btn btn-danger btn-lg" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#permanentDeleteModal">
+                                        <i class="fas fa-trash"></i> Eliminar Permanentemente
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'core:recycle_bin_list' %}" class="btn btn-secondary btn-lg">
+                                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para restauración -->
+{% if can_restore and not restore_conflicts and original_object %}
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-undo"></i> Confirmar Restauración
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'core:recycle_bin_restore' entry.id %}" id="quickRestoreForm">
+                {% csrf_token %}
+                <input type="hidden" name="quick_restore" value="1">
+                <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Información:</strong> El elemento será restaurado a su estado anterior y volverá a estar disponible en el sistema.
+                    </div>
+                    <p>¿Está seguro de restaurar el siguiente elemento?</p>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ entry.object_repr }}</h6>
+                            <p class="card-text mb-0">
+                                <small class="text-muted">
+                                    <i class="fas fa-layer-group me-1"></i> {{ entry.get_module_display }}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-undo"></i> Confirmar Restauración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal para eliminación permanente -->
+{% if is_admin %}
+<div class="modal fade" id="permanentDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Eliminación Permanente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'core:recycle_bin_permanent_delete' entry.id %}" id="permanentDeleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                <div class="modal-body">
+                    <div class="alert alert-danger border-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-skull-crossbones"></i> ¡ADVERTENCIA CRÍTICA!
+                        </h6>
+                        <hr>
+                        <p class="mb-0">
+                            Esta acción es <strong>IRREVERSIBLE</strong>. El elemento será eliminado permanentemente de la base de datos y no podrá ser recuperado.
+                        </p>
+                    </div>
+                    
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Elemento a eliminar:</h6>
+                            <p class="card-text mb-0">
+                                <strong>{{ entry.object_repr }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-layer-group me-1"></i> {{ entry.get_module_display }}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="securityCode" class="form-label">
+                            <i class="fas fa-key"></i> Código de Seguridad: 
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="securityCode" 
+                               name="security_code" 
+                               required
+                               data-validate="security-code"
+                               autocomplete="off"
+                               placeholder="Ingrese el código de seguridad">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i>
+                            Ingrese el código de seguridad para confirmar la eliminación permanente.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirmText" class="form-label">
+                            <i class="fas fa-keyboard"></i> Escriba "ELIMINAR" para confirmar: 
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="confirmText" 
+                               name="confirm_text" 
+                               required
+                               data-validate="confirm-text"
+                               placeholder="Escriba ELIMINAR"
+                               autocomplete="off">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i>
+                            Debe escribir exactamente "ELIMINAR" en mayúsculas.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">
+                            <i class="fas fa-comment-alt"></i> Motivo de eliminación permanente: 
+                            <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" 
+                                  id="reason" 
+                                  name="reason" 
+                                  rows="3" 
+                                  required
+                                  data-validate="required"
+                                  placeholder="Explique por qué es necesario eliminar permanentemente este elemento (mínimo 20 caracteres)..."></textarea>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i>
+                            Proporcione una explicación detallada (mínimo 20 caracteres).
+                        </div>
+                        <div id="reasonCounter" class="form-text text-end">
+                            <span id="charCount">0</span> / 20 caracteres mínimos
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-danger" id="btnPermanentDelete" disabled>
+                        <i class="fas fa-trash"></i> Eliminar Permanentemente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Contador de caracteres para el motivo
+document.getElementById('reason')?.addEventListener('input', function() {
+    const charCount = this.value.length;
+    document.getElementById('charCount').textContent = charCount;
+    
+    const counter = document.getElementById('reasonCounter');
+    if (charCount >= 20) {
+        counter.classList.remove('text-danger');
+        counter.classList.add('text-success');
+    } else {
+        counter.classList.remove('text-success');
+        counter.classList.add('text-danger');
+    }
+});
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

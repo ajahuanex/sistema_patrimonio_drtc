@@ -1,0 +1,572 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load recycle_bin_tags %}
+
+{% block title %}Papelera de Reciclaje{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recycle_bin.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/recycle_bin_forms.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con gradiente -->
+    <div class="recycle-bin-header text-center">
+        <h1 class="mb-2">
+            <i class="fas fa-trash-restore fa-2x"></i>
+        </h1>
+        <h2>Papelera de Reciclaje</h2>
+        <p class="mb-0">Gestione elementos eliminados y recupere información cuando sea necesario</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-list"></i> Elementos Eliminados
+                        </h3>
+                        <div>
+                            <a href="{% url 'core:recycle_bin_dashboard' %}" class="btn btn-sm btn-info mr-2">
+                                <i class="fas fa-chart-line"></i> Dashboard
+                            </a>
+                            <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Estadísticas con animación -->
+                    <div class="row mb-4">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="info-box bg-white">
+                                <span class="info-box-icon bg-info text-white">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                                <div class="info-box-content p-3">
+                                    <span class="info-box-text text-muted">Total en Papelera</span>
+                                    <span class="info-box-number h3 mb-0">{{ stats.total }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="info-box bg-white">
+                                <span class="info-box-icon bg-warning text-white">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                <div class="info-box-content p-3">
+                                    <span class="info-box-text text-muted">Próximos a Eliminar</span>
+                                    <span class="info-box-number h3 mb-0">{{ stats.near_auto_delete }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="info-box bg-white">
+                                <span class="info-box-icon bg-danger text-white">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <div class="info-box-content p-3">
+                                    <span class="info-box-text text-muted">Listos para Eliminar</span>
+                                    <span class="info-box-number h3 mb-0">{{ stats.ready_for_auto_delete }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="info-box bg-white">
+                                <span class="info-box-icon bg-success text-white">
+                                    <i class="fas fa-database"></i>
+                                </span>
+                                <div class="info-box-content p-3">
+                                    <span class="info-box-text text-muted">Módulos Activos</span>
+                                    <span class="info-box-number h3 mb-0">{{ stats.by_module|length }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros Rápidos con mejor diseño responsive -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap justify-content-start">
+                                <a href="?time_remaining=expired" class="btn btn-sm btn-outline-danger quick-filter-btn">
+                                    <i class="fas fa-exclamation-circle"></i> Listos para eliminar
+                                    {% if quick_filters.expired %}
+                                    <span class="badge bg-danger ms-1">{{ quick_filters.expired }}</span>
+                                    {% endif %}
+                                </a>
+                                <a href="?time_remaining=critical" class="btn btn-sm btn-outline-warning quick-filter-btn">
+                                    <i class="fas fa-clock"></i> Críticos (1-3 días)
+                                </a>
+                                <a href="?time_remaining=warning" class="btn btn-sm btn-outline-warning quick-filter-btn">
+                                    <i class="fas fa-bell"></i> Advertencia (4-7 días)
+                                    {% if quick_filters.expiring_soon %}
+                                    <span class="badge bg-warning ms-1">{{ quick_filters.expiring_soon }}</span>
+                                    {% endif %}
+                                </a>
+                                <a href="?deleted_by={{ request.user.username }}" class="btn btn-sm btn-outline-info quick-filter-btn">
+                                    <i class="fas fa-user"></i> Mis eliminaciones
+                                    {% if quick_filters.my_deletions %}
+                                    <span class="badge bg-info ms-1">{{ quick_filters.my_deletions }}</span>
+                                    {% endif %}
+                                </a>
+                                <a href="?" class="btn btn-sm btn-outline-secondary quick-filter-btn">
+                                    <i class="fas fa-times"></i> Limpiar filtros
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros Avanzados con mejor diseño -->
+                    <div class="card mb-4 filter-card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                                    <i class="fas fa-filter"></i> Filtros Avanzados
+                                    {% if active_filters_count > 0 %}
+                                        <span class="badge bg-primary ms-2">{{ active_filters_count }} activo(s)</span>
+                                    {% endif %}
+                                    <i class="fas fa-chevron-down float-end"></i>
+                                </button>
+                            </h5>
+                        </div>
+                        <div id="advancedFilters" class="collapse {% if active_filters_count > 0 %}show{% endif %}">
+                            <div class="card-body bg-light">
+                                <form method="get" id="filterForm">
+                                    <div class="row">
+                                        <!-- Búsqueda -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.search.id_for_label }}">{{ filter_form.search.label }}</label>
+                                            {{ filter_form.search }}
+                                        </div>
+                                        
+                                        <!-- Módulo -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.module.id_for_label }}">{{ filter_form.module.label }}</label>
+                                            {{ filter_form.module }}
+                                        </div>
+                                        
+                                        <!-- Tiempo restante -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.time_remaining.id_for_label }}">{{ filter_form.time_remaining.label }}</label>
+                                            {{ filter_form.time_remaining }}
+                                        </div>
+                                        
+                                        <!-- Estado -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.status.id_for_label }}">{{ filter_form.status.label }}</label>
+                                            {{ filter_form.status }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <!-- Fecha desde -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>
+                                            {{ filter_form.date_from }}
+                                        </div>
+                                        
+                                        <!-- Fecha hasta -->
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.date_to.id_for_label }}">{{ filter_form.date_to.label }}</label>
+                                            {{ filter_form.date_to }}
+                                        </div>
+                                        
+                                        <!-- Eliminado por (solo admin) -->
+                                        {% if is_admin %}
+                                        <div class="col-md-3 mb-3">
+                                            <label for="{{ filter_form.deleted_by.id_for_label }}">{{ filter_form.deleted_by.label }}</label>
+                                            {{ filter_form.deleted_by }}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Botones -->
+                                        <div class="col-md-3 mb-3">
+                                            <label>&nbsp;</label>
+                                            <div>
+                                                <button type="submit" class="btn btn-primary btn-block">
+                                                    <i class="fas fa-search"></i> Aplicar Filtros
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Resumen de filtros activos -->
+                                    {% if active_filters_summary %}
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="alert alert-info mb-0">
+                                                <strong>Filtros activos:</strong>
+                                                {% for filter_name, filter_value in active_filters_summary %}
+                                                    <span class="badge badge-info">{{ filter_name }}: {{ filter_value }}</span>
+                                                {% endfor %}
+                                                <a href="?" class="btn btn-sm btn-outline-secondary ml-2">
+                                                    <i class="fas fa-times"></i> Limpiar
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Acciones en lote con mejor diseño -->
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between">
+                            <div class="action-buttons">
+                                <button type="button" class="btn btn-success" onclick="bulkRestore()" id="btnBulkRestore" disabled>
+                                    <i class="fas fa-undo"></i> Restaurar Seleccionados
+                                </button>
+                                {% if is_admin %}
+                                <button type="button" class="btn btn-danger" onclick="bulkPermanentDelete()" id="btnBulkDelete" disabled>
+                                    <i class="fas fa-trash"></i> Eliminar Permanentemente
+                                </button>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="badge bg-secondary" id="selectedCount">
+                                    <i class="fas fa-check-square"></i> 0 elementos seleccionados
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de elementos con estados visuales mejorados -->
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="30">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th><i class="fas fa-box me-1"></i> Objeto</th>
+                                    <th><i class="fas fa-layer-group me-1"></i> Módulo</th>
+                                    <th><i class="fas fa-user me-1"></i> Eliminado Por</th>
+                                    <th><i class="fas fa-calendar me-1"></i> Fecha Eliminación</th>
+                                    <th><i class="fas fa-hourglass-half me-1"></i> Días Restantes</th>
+                                    <th><i class="fas fa-info-circle me-1"></i> Estado</th>
+                                    <th><i class="fas fa-cog me-1"></i> Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in page_obj %}
+                                <tr class="{% if entry.is_ready_for_auto_delete %}entry-row-expired{% elif entry.is_near_auto_delete %}entry-row-warning{% else %}entry-row-normal{% endif %}">
+                                    <td>
+                                        <input type="checkbox" class="entry-checkbox form-check-input" value="{{ entry.id }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <strong class="d-block">{{ entry.object_repr }}</strong>
+                                                {% if entry.deletion_reason %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-comment-alt me-1"></i>
+                                                    {{ entry.deletion_reason|truncatewords:10 }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-folder me-1"></i>
+                                            {{ entry.get_module_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-user-circle me-1"></i>
+                                        {{ entry.deleted_by.get_full_name|default:entry.deleted_by.username }}
+                                    </td>
+                                    <td>
+                                        <i class="far fa-clock me-1"></i>
+                                        {{ entry.deleted_at|date:"d/m/Y H:i" }}
+                                    </td>
+                                    <td>
+                                        {% time_remaining_badge entry %}
+                                    </td>
+                                    <td>
+                                        {% status_badge entry %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'core:recycle_bin_detail' entry.id %}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Ver detalle"
+                                               data-bs-toggle="tooltip">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if entry.can_be_restored_by user %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-success" 
+                                                    title="Restaurar"
+                                                    data-bs-toggle="tooltip"
+                                                    onclick="showRestoreModal('{{ entry.id }}', '{{ entry.object_repr|escapejs }}')">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No hay elementos en la papelera</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Paginación">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{% url_replace request page=1 %}">Primera</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="{% url_replace request page=page_obj.previous_page_number %}">Anterior</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{% url_replace request page=page_obj.next_page_number %}">Siguiente</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="{% url_replace request page=page_obj.paginator.num_pages %}">Última</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para restauración individual -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-undo"></i> Confirmar Restauración
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="restoreForm">
+                {% csrf_token %}
+                <input type="hidden" name="quick_restore" value="1">
+                <input type="hidden" name="entry_id" id="restoreEntryId">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Información:</strong> El elemento será restaurado a su estado anterior.
+                    </div>
+                    <p>¿Está seguro de restaurar el siguiente elemento?</p>
+                    <p class="text-center">
+                        <strong id="restoreObjectName"></strong>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-undo"></i> Restaurar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminación permanente en lote -->
+{% if is_admin %}
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Eliminación Permanente en Lote
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'core:recycle_bin_bulk_permanent_delete' %}" id="bulkDeleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="confirm" value="on">
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <strong>¡ADVERTENCIA!</strong> Esta acción es irreversible. Los elementos seleccionados serán eliminados permanentemente de la base de datos.
+                    </div>
+                    <p>Elementos a eliminar: <strong id="deleteCount">0</strong></p>
+                    
+                    <div class="form-group">
+                        <label for="bulkSecurityCode">Código de Seguridad: <span class="text-danger">*</span></label>
+                        <input type="password" 
+                               class="form-control" 
+                               id="bulkSecurityCode" 
+                               name="security_code" 
+                               required
+                               data-validate="security-code"
+                               autocomplete="off"
+                               placeholder="Ingrese el código de seguridad">
+                        <small class="form-text text-muted">Ingrese el código de seguridad para confirmar la eliminación permanente.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkNotes">Notas (opcional):</label>
+                        <textarea class="form-control" 
+                                  id="bulkNotes" 
+                                  name="notes" 
+                                  rows="2"
+                                  placeholder="Agregue notas sobre esta operación en lote..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-danger" id="btnBulkDeleteSubmit">
+                        <i class="fas fa-trash"></i> Eliminar Permanentemente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Inicializar tooltips de Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Manejo de selección de checkboxes
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.entry-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateSelectedCount();
+});
+
+document.querySelectorAll('.entry-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateSelectedCount);
+});
+
+function updateSelectedCount() {
+    const selected = document.querySelectorAll('.entry-checkbox:checked');
+    const count = selected.length;
+    const badge = document.getElementById('selectedCount');
+    badge.innerHTML = `<i class="fas fa-check-square"></i> ${count} elemento(s) seleccionado(s)`;
+    
+    // Cambiar color del badge según cantidad
+    badge.className = 'badge ' + (count > 0 ? 'bg-primary' : 'bg-secondary');
+    
+    document.getElementById('btnBulkRestore').disabled = count === 0;
+    {% if is_admin %}
+    document.getElementById('btnBulkDelete').disabled = count === 0;
+    {% endif %}
+}
+
+// Modal de restauración individual
+function showRestoreModal(entryId, objectName) {
+    document.getElementById('restoreEntryId').value = entryId;
+    document.getElementById('restoreObjectName').textContent = objectName;
+    document.getElementById('restoreForm').action = `/core/recycle-bin/${entryId}/restore/`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('restoreModal'));
+    modal.show();
+}
+
+// Restauración en lote
+function bulkRestore() {
+    const selected = Array.from(document.querySelectorAll('.entry-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) return;
+    
+    if (confirm(`¿Está seguro de restaurar ${selected.length} elemento(s)?`)) {
+        // Mostrar indicador de carga
+        const btn = document.getElementById('btnBulkRestore');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restaurando...';
+        btn.disabled = true;
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "core:recycle_bin_bulk_restore" %}';
+        
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrfmiddlewaretoken';
+        csrf.value = '{{ csrf_token }}';
+        form.appendChild(csrf);
+        
+        selected.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'entry_ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+{% if is_admin %}
+// Eliminación permanente en lote
+function bulkPermanentDelete() {
+    const selected = Array.from(document.querySelectorAll('.entry-checkbox:checked'));
+    if (selected.length === 0) return;
+    
+    document.getElementById('deleteCount').textContent = selected.length;
+    
+    // Agregar IDs al formulario
+    const form = document.getElementById('bulkDeleteForm');
+    // Limpiar inputs anteriores
+    form.querySelectorAll('input[name="entry_ids[]"]').forEach(input => input.remove());
+    
+    selected.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'entry_ids[]';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    
+    const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+    modal.show();
+}
+{% endif %}
+
+// Animación de carga en filtros
+document.getElementById('filterForm')?.addEventListener('submit', function() {
+    const btn = this.querySelector('button[type="submit"]');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aplicando...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}

@@ -668,13 +668,197 @@ class BienDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         return redirect(success_url)
 
 
+class DescargarPlantillaBienesView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Vista para descargar plantilla de ejemplo para importación de bienes"""
+    permission_required = 'bienes.view_bienpatrimonial'
+    
+    def get(self, request):
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from django.http import HttpResponse
+        from django.utils import timezone
+        
+        # Crear workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Plantilla Bienes"
+        
+        # Encabezados
+        headers = [
+            'CODIGO_PATRIMONIAL', 'CODIGO_CATALOGO', 'DENOMINACION', 'MARCA', 'MODELO',
+            'SERIE', 'COLOR', 'DIMENSIONES', 'VALOR_ADQUISICION', 'FECHA_ADQUISICION',
+            'ESTADO', 'CODIGO_OFICINA', 'OBSERVACIONES'
+        ]
+        ws.append(headers)
+        
+        # Estilo para encabezados
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+        
+        # Datos de ejemplo
+        ejemplos = [
+            ['BP-2024-001', '04220001', 'TRACTOR AGRICOLA JOHN DEERE', 'JOHN DEERE', '5075E',
+             'SN123456', 'VERDE', '4.5m x 2.2m x 2.8m', '85000.00', '2024-01-15',
+             'bueno', 'OF-001', 'Tractor nuevo para área agrícola'],
+            ['BP-2024-002', '05220002', 'COMPUTADORA PERSONAL HP', 'HP', 'ELITEDESK 800 G6',
+             'SN789012', 'NEGRO', '35cm x 17cm x 34cm', '3500.00', '2024-02-20',
+             'bueno', 'OF-002', 'Computadora para oficina administrativa'],
+            ['BP-2024-003', '06220003', 'ESCRITORIO DE MADERA', 'MUEBLES PERU', 'EJECUTIVO-150',
+             'N/A', 'CAOBA', '150cm x 75cm x 75cm', '850.00', '2024-03-10',
+             'bueno', 'OF-002', 'Escritorio para gerencia'],
+            ['BP-2024-004', '07220004', 'VEHICULO AUTOMOVIL TOYOTA', 'TOYOTA', 'HILUX 4X4',
+             'VIN-ABC123XYZ', 'BLANCO', '5.3m x 1.8m x 1.8m', '125000.00', '2024-01-05',
+             'bueno', 'OF-001', 'Vehículo para transporte de personal'],
+            ['BP-2024-005', '08220005', 'IMPRESORA LASER HP', 'HP', 'LASERJET PRO M404DN',
+             'SN345678', 'GRIS', '36cm x 36cm x 25cm', '1200.00', '2023-12-15',
+             'regular', 'OF-003', 'Impresora para área de documentos'],
+        ]
+        
+        for ejemplo in ejemplos:
+            ws.append(ejemplo)
+        
+        # Ajustar ancho de columnas
+        column_widths = {
+            'A': 18,  # CODIGO_PATRIMONIAL
+            'B': 16,  # CODIGO_CATALOGO
+            'C': 35,  # DENOMINACION
+            'D': 18,  # MARCA
+            'E': 20,  # MODELO
+            'F': 15,  # SERIE
+            'G': 12,  # COLOR
+            'H': 20,  # DIMENSIONES
+            'I': 18,  # VALOR_ADQUISICION
+            'J': 18,  # FECHA_ADQUISICION
+            'K': 12,  # ESTADO
+            'L': 16,  # CODIGO_OFICINA
+            'M': 30,  # OBSERVACIONES
+        }
+        
+        for col_letter, width in column_widths.items():
+            ws.column_dimensions[col_letter].width = width
+        
+        # Agregar instrucciones en una hoja separada
+        ws_instrucciones = wb.create_sheet("Instrucciones")
+        
+        instrucciones = [
+            ["INSTRUCCIONES PARA IMPORTAR BIENES PATRIMONIALES"],
+            [""],
+            ["1. ESTRUCTURA DEL ARCHIVO"],
+            ["   El archivo debe contener las siguientes columnas (en cualquier orden):"],
+            [""],
+            ["   COLUMNAS REQUERIDAS:"],
+            ["   - CODIGO_PATRIMONIAL: Código único del bien (ej: BP-2024-001)"],
+            ["   - CODIGO_CATALOGO: Código del catálogo SBN (8 dígitos, ej: 04220001)"],
+            ["   - DENOMINACION: Nombre descriptivo del bien"],
+            ["   - VALOR_ADQUISICION: Valor en soles (formato: 1000.00)"],
+            ["   - FECHA_ADQUISICION: Fecha en formato YYYY-MM-DD (ej: 2024-01-15)"],
+            ["   - ESTADO: bueno, regular, malo, muy_malo, chatarra, RAEE"],
+            ["   - CODIGO_OFICINA: Código de la oficina asignada"],
+            [""],
+            ["   COLUMNAS OPCIONALES:"],
+            ["   - MARCA: Marca del bien"],
+            ["   - MODELO: Modelo del bien"],
+            ["   - SERIE: Número de serie"],
+            ["   - COLOR: Color del bien"],
+            ["   - DIMENSIONES: Dimensiones físicas"],
+            ["   - OBSERVACIONES: Notas adicionales"],
+            [""],
+            ["2. REGLAS DE VALIDACIÓN"],
+            ["   - Los códigos patrimoniales deben ser únicos"],
+            ["   - El código de catálogo debe existir en el sistema"],
+            ["   - El código de oficina debe existir en el sistema"],
+            ["   - El valor de adquisición debe ser un número positivo"],
+            ["   - La fecha debe estar en formato correcto (YYYY-MM-DD)"],
+            ["   - El estado debe ser uno de los valores permitidos"],
+            [""],
+            ["3. ESTADOS PERMITIDOS"],
+            ["   - bueno: Bien en buen estado"],
+            ["   - regular: Bien en estado regular"],
+            ["   - malo: Bien en mal estado"],
+            ["   - muy_malo: Bien en muy mal estado"],
+            ["   - chatarra: Bien dado de baja como chatarra"],
+            ["   - RAEE: Residuo de Aparatos Eléctricos y Electrónicos"],
+            [""],
+            ["4. FORMATO DE FECHAS"],
+            ["   - Use el formato: YYYY-MM-DD"],
+            ["   - Ejemplos válidos: 2024-01-15, 2023-12-31, 2024-06-01"],
+            ["   - NO use: 15/01/2024, 01-15-2024, 15-01-24"],
+            [""],
+            ["5. FORMATO DE VALORES"],
+            ["   - Use punto (.) como separador decimal"],
+            ["   - Ejemplos: 1000.00, 3500.50, 125000.00"],
+            ["   - NO use comas ni símbolos de moneda"],
+            [""],
+            ["6. PROCESO DE IMPORTACIÓN"],
+            ["   - Elimine estas filas de ejemplo antes de importar"],
+            ["   - Complete sus datos en la hoja 'Plantilla Bienes'"],
+            ["   - Verifique que los códigos de catálogo y oficina existan"],
+            ["   - Guarde el archivo en formato .xlsx o .xls"],
+            ["   - Use el botón 'Validar' antes de importar"],
+            ["   - Si la validación es exitosa, proceda con la importación"],
+            [""],
+            ["7. ACTUALIZACIÓN DE REGISTROS EXISTENTES"],
+            ["   - Si marca 'Actualizar registros existentes':"],
+            ["     Los bienes con códigos existentes serán actualizados"],
+            ["   - Si no marca la opción:"],
+            ["     Los bienes con códigos existentes serán omitidos"],
+            [""],
+            ["8. CÓDIGOS DE EJEMPLO"],
+            ["   Código Patrimonial: BP-2024-001 (BP = Bien Patrimonial, 2024 = Año, 001 = Correlativo)"],
+            ["   Código Catálogo: 04220001 (debe existir en el catálogo SBN)"],
+            ["   Código Oficina: OF-001 (debe existir en el sistema de oficinas)"],
+            [""],
+            ["9. NOTAS IMPORTANTES"],
+            ["   - Asegúrese de que los catálogos y oficinas existan antes de importar"],
+            ["   - Los códigos patrimoniales deben seguir el formato de su institución"],
+            ["   - Revise los datos de ejemplo para entender el formato correcto"],
+            ["   - Use la función de validación para detectar errores antes de importar"],
+        ]
+        
+        for row_data in instrucciones:
+            ws_instrucciones.append(row_data)
+        
+        # Estilo para el título de instrucciones
+        ws_instrucciones['A1'].font = Font(bold=True, size=14, color="366092")
+        ws_instrucciones.column_dimensions['A'].width = 90
+        
+        # Preparar respuesta
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"plantilla_bienes_{timezone.now().strftime('%Y%m%d')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        wb.save(response)
+        return response
+
+
 class ImportarBienesView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Vista para importar bienes desde Excel"""
     permission_required = 'bienes.add_bienpatrimonial'
     template_name = 'bienes/importar.html'
     
     def get(self, request):
-        return render(request, self.template_name)
+        context = {
+            'total_bienes': BienPatrimonial.objects.count(),
+            'bienes_activos': BienPatrimonial.objects.filter(estado_bien='bueno').count(),
+        }
+        return render(request, self.template_name, context)
     
     def post(self, request):
         if 'archivo' not in request.FILES:

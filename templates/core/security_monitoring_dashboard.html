@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Monitoreo de Seguridad - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recycle_bin.css' %}">
+<style>
+    .security-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .security-stat {
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .security-stat-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .security-stat-label {
+        color: #7f8c8d;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    
+    .lockout-level-normal { color: #27ae60; }
+    .lockout-level-medio { color: #f39c12; }
+    .lockout-level-alto { color: #e67e22; }
+    .lockout-level-critico { color: #e74c3c; }
+    
+    .attempt-row-failed { background-color: #fee; }
+    .attempt-row-success { background-color: #efe; }
+    .attempt-row-blocked { background-color: #ffe; }
+    
+    .ip-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        background: #ecf0f1;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 0.9em;
+    }
+    
+    .chart-container {
+        height: 300px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-shield-alt"></i> Monitoreo de Seguridad</h2>
+            <p class="text-muted">
+                Monitoreo de intentos de código de seguridad y actividad sospechosa
+            </p>
+        </div>
+    </div>
+    
+    <!-- Filtros de período -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="security-card">
+                <form method="get" class="form-inline">
+                    <label class="mr-2">Período de análisis:</label>
+                    <select name="hours" class="form-control mr-2" onchange="this.form.submit()">
+                        <option value="1" {% if hours == 1 %}selected{% endif %}>Última hora</option>
+                        <option value="6" {% if hours == 6 %}selected{% endif %}>Últimas 6 horas</option>
+                        <option value="24" {% if hours == 24 %}selected{% endif %}>Últimas 24 horas</option>
+                        <option value="72" {% if hours == 72 %}selected{% endif %}>Últimos 3 días</option>
+                        <option value="168" {% if hours == 168 %}selected{% endif %}>Última semana</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value">{{ suspicious_report.total_attempts }}</div>
+                    <div class="security-stat-label">Total de Intentos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-danger">{{ suspicious_report.failed_attempts }}</div>
+                    <div class="security-stat-label">Intentos Fallidos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-success">{{ suspicious_report.successful_attempts }}</div>
+                    <div class="security-stat-label">Intentos Exitosos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-warning">{{ suspicious_report.currently_locked_users|length }}</div>
+                    <div class="security-stat-label">Usuarios Bloqueados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estadísticas adicionales -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-info">{{ suspicious_report.rate_limited_attempts }}</div>
+                    <div class="security-stat-label">Bloqueados por Rate Limit</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-primary">{{ suspicious_report.captcha_required_attempts }}</div>
+                    <div class="security-stat-label">Requirieron CAPTCHA</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="security-card">
+                <div class="security-stat">
+                    <div class="security-stat-value text-danger">{{ suspicious_report.unauthorized_access_attempts }}</div>
+                    <div class="security-stat-label">Accesos No Autorizados</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de intentos por hora -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="security-card">
+                <h4><i class="fas fa-chart-line"></i> Intentos por Hora</h4>
+                <div class="chart-container">
+                    <canvas id="attemptsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usuarios con más intentos fallidos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="security-card">
+                <h4><i class="fas fa-users"></i> Usuarios con Más Intentos Fallidos</h4>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Intentos Fallidos</th>
+                                <th>Estado</th>
+                                <th>Nivel</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user_data in users_data %}
+                            <tr>
+                                <td>
+                                    <strong>{{ user_data.username }}</strong><br>
+                                    <small class="text-muted">{{ user_data.email }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-danger">{{ user_data.failure_count }}</span>
+                                </td>
+                                <td>
+                                    {% if user_data.is_locked %}
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-lock"></i> Bloqueado
+                                            ({{ user_data.time_remaining }} min)
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check"></i> Activo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="lockout-level-{{ user_data.lockout_level|lower }}">
+                                        {{ user_data.lockout_level }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user_data.is_locked and request.user.profile.is_administrador %}
+                                        <form method="post" action="{% url 'core:unlock_user_security' user_data.username %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-primary" 
+                                                    onclick="return confirm('¿Desbloquear este usuario?')">
+                                                <i class="fas fa-unlock"></i> Desbloquear
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    No hay usuarios con intentos fallidos en este período
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- IPs con más intentos fallidos -->
+        <div class="col-md-6">
+            <div class="security-card">
+                <h4><i class="fas fa-network-wired"></i> IPs con Más Intentos Fallidos</h4>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Dirección IP</th>
+                                <th>Intentos Fallidos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ip_data in ips_with_failures %}
+                            <tr>
+                                <td>
+                                    <span class="ip-badge">{{ ip_data.ip_address }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-danger">{{ ip_data.failure_count }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">
+                                    No hay IPs con intentos fallidos en este período
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Intentos recientes -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="security-card">
+                <h4><i class="fas fa-history"></i> Intentos Recientes</h4>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Usuario</th>
+                                <th>IP</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Detalles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in recent_attempts %}
+                            <tr class="{% if attempt.blocked_by_rate_limit %}attempt-row-blocked{% elif attempt.success %}attempt-row-success{% else %}attempt-row-failed{% endif %}">
+                                <td>
+                                    <small>{{ attempt.attempted_at|date:"d/m/Y H:i:s" }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ attempt.user.username }}</strong>
+                                </td>
+                                <td>
+                                    <span class="ip-badge">{{ attempt.ip_address|default:"N/A" }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ attempt.get_attempt_type_display }}</small>
+                                </td>
+                                <td>
+                                    {% if attempt.blocked_by_rate_limit %}
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-ban"></i> Rate Limited
+                                        </span>
+                                    {% elif attempt.success %}
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check"></i> Exitoso
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-danger">
+                                            <i class="fas fa-times"></i> Fallido
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if attempt.requires_captcha %}
+                                        <span class="badge badge-info">
+                                            <i class="fas fa-robot"></i> CAPTCHA
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'core:security_attempt_detail' attempt.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    No hay intentos recientes en este período
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Gráfico de intentos por hora
+    const ctx = document.getElementById('attemptsChart').getContext('2d');
+    const attemptsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ attempts_by_hour|safe|map:'hour'|list }},
+            datasets: [{
+                label: 'Intentos',
+                data: {{ attempts_by_hour|safe|map:'count'|list }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Intentos de Código de Seguridad por Hora'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

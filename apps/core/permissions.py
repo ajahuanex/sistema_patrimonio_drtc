@@ -223,3 +223,128 @@ class CanManageUsers(BasePermission):
             request.user.profile.is_active and
             request.user.profile.can_manage_users()
         )
+
+
+# ============================================================================
+# PERMISOS DE PAPELERA DE RECICLAJE
+# ============================================================================
+
+
+class CanViewRecycleBin(BasePermission):
+    """Permiso para ver la papelera de reciclaje"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_view_recycle_bin()
+        )
+
+
+class CanViewAllRecycleItems(BasePermission):
+    """Permiso para ver todos los elementos en la papelera"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_view_all_recycle_items()
+        )
+
+
+class CanRestoreItems(BasePermission):
+    """Permiso para restaurar elementos de la papelera"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_restore_items()
+        )
+
+
+class CanRestoreOwnItems(BasePermission):
+    """Permiso para restaurar propios elementos"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_restore_own_items()
+        )
+
+
+class CanRestoreOthersItems(BasePermission):
+    """Permiso para restaurar elementos de otros usuarios"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_restore_others_items()
+        )
+
+
+class CanPermanentDelete(BasePermission):
+    """Permiso para eliminar permanentemente elementos"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_permanent_delete()
+        )
+
+
+class CanViewDeletionAuditLogs(BasePermission):
+    """Permiso para ver logs de auditoría de eliminaciones"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_view_deletion_audit_logs()
+        )
+
+
+class CanManageRecycleConfig(BasePermission):
+    """Permiso para gestionar configuración de papelera"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_manage_recycle_config()
+        )
+
+
+class CanBulkRestore(BasePermission):
+    """Permiso para restaurar elementos en lote"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_bulk_restore()
+        )
+
+
+class CanBulkPermanentDelete(BasePermission):
+    """Permiso para eliminar permanentemente en lote"""
+    
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.is_active and
+            request.user.profile.can_bulk_permanent_delete()
+        )

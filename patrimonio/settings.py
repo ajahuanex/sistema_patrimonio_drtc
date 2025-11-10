@@ -74,6 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.core.context_processors.recycle_bin_context',
             ],
         },
     },
@@ -217,6 +218,21 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.notificaciones.tasks.reenviar_notificaciones_fallidas',
         'schedule': crontab(minute=0, hour='*/2'),
     },
+    # Limpiar papelera de reciclaje cada día a las 4:00 AM
+    'cleanup-recycle-bin': {
+        'task': 'apps.core.tasks.cleanup_recycle_bin_task',
+        'schedule': crontab(hour=4, minute=0),
+    },
+    # Advertencias de papelera (7 días antes) - ejecutar diariamente a las 9:00 AM
+    'send-recycle-bin-warnings': {
+        'task': 'apps.core.tasks.send_recycle_bin_warnings',
+        'schedule': crontab(hour=9, minute=0),
+    },
+    # Advertencias finales de papelera (1 día antes) - ejecutar cada 6 horas
+    'send-recycle-bin-final-warnings': {
+        'task': 'apps.core.tasks.send_recycle_bin_final_warnings',
+        'schedule': crontab(minute=0, hour='*/6'),  # 00:00, 06:00, 12:00, 18:00
+    },
 }
 
 # Configuración adicional de Celery
@@ -224,6 +240,9 @@ CELERY_TASK_ROUTES = {
     'apps.reportes.tasks.generar_reporte_async': {'queue': 'reportes'},
     'apps.core.tasks.importacion_masiva_excel': {'queue': 'importaciones'},
     'apps.mobile.tasks.procesar_sincronizacion_async': {'queue': 'mobile'},
+    'apps.core.tasks.cleanup_recycle_bin_task': {'queue': 'maintenance'},
+    'apps.core.tasks.send_recycle_bin_warnings': {'queue': 'notifications'},
+    'apps.core.tasks.send_recycle_bin_final_warnings': {'queue': 'notifications'},
 }
 
 CELERY_TASK_DEFAULT_QUEUE = 'default'
@@ -251,6 +270,21 @@ BASE_URL = config('BASE_URL', default='http://localhost:8000')
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Recycle Bin Configuration
+PERMANENT_DELETE_CODE = config('PERMANENT_DELETE_CODE', default='CHANGE-THIS-IN-PRODUCTION')
+RECYCLE_BIN_RETENTION_DAYS = config('RECYCLE_BIN_RETENTION_DAYS', default=30, cast=int)
+RECYCLE_BIN_AUTO_CLEANUP_ENABLED = config('RECYCLE_BIN_AUTO_CLEANUP_ENABLED', default=True, cast=bool)
+RECYCLE_BIN_MAX_BULK_SIZE = config('RECYCLE_BIN_MAX_BULK_SIZE', default=100, cast=int)
+RECYCLE_BIN_LOCKOUT_ATTEMPTS = config('RECYCLE_BIN_LOCKOUT_ATTEMPTS', default=3, cast=int)
+RECYCLE_BIN_LOCKOUT_MINUTES = config('RECYCLE_BIN_LOCKOUT_MINUTES', default=30, cast=int)
+
+# reCAPTCHA Configuration (for security protection against brute force)
+RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='')
+RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='')
+
+# Celery Beat Configuration
+CELERY_BEAT_ENABLED = config('CELERY_BEAT_ENABLED', default=True, cast=bool)
 
 # Logging
 LOGGING = {

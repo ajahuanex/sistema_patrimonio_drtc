@@ -24,6 +24,7 @@ urlpatterns = [
     
     # Import/Export URLs
     path('importar/', views.ImportarBienesView.as_view(), name='importar'),
+    path('importar/plantilla/', views.DescargarPlantillaBienesView.as_view(), name='descargar_plantilla'),
     path('exportar/', views.ExportarBienesView.as_view(), name='exportar'),
     
     # QR Management URLs

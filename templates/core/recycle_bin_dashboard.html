@@ -1,0 +1,547 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Papelera - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recycle_bin.css' %}">
+<style>
+    .dashboard-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+    
+    .recent-items-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .recent-item {
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .recent-item:last-child {
+        border-bottom: none;
+    }
+    
+    .module-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .module-badge.oficinas { background: #e3f2fd; color: #1976d2; }
+    .module-badge.bienes { background: #f3e5f5; color: #7b1fa2; }
+    .module-badge.catalogo { background: #e8f5e9; color: #388e3c; }
+    .module-badge.core { background: #fff3e0; color: #f57c00; }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .filter-section {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chart-line"></i> Dashboard de Papelera de Reciclaje</h2>
+            <p class="text-muted">Estadísticas y métricas del sistema de papelera</p>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{% url 'core:recycle_bin_list' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> Ver Papelera
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="form-inline">
+            <label class="mr-2">Período:</label>
+            <select name="date_range" class="form-control mr-2" onchange="this.form.submit()">
+                <option value="7" {% if date_range == 7 %}selected{% endif %}>Últimos 7 días</option>
+                <option value="30" {% if date_range == 30 %}selected{% endif %}>Últimos 30 días</option>
+                <option value="90" {% if date_range == 90 %}selected{% endif %}>Últimos 90 días</option>
+                <option value="365" {% if date_range == 365 %}selected{% endif %}>Último año</option>
+                <option value="0" {% if date_range == 0 %}selected{% endif %}>Todo el tiempo</option>
+            </select>
+        </form>
+    </div>
+    
+    <!-- Tarjetas de Estadísticas Generales -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Total Eliminados</div>
+                <div class="stat-value">{{ total_deleted }}</div>
+                <small>En el período seleccionado</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card success">
+                <div class="stat-label">Restaurados</div>
+                <div class="stat-value">{{ total_restored }}</div>
+                <small>Tasa: {{ restoration_rate }}%</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card info">
+                <div class="stat-label">Pendientes</div>
+                <div class="stat-value">{{ total_pending }}</div>
+                <small>En papelera actualmente</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-label">Eliminados Permanentemente</div>
+                <div class="stat-value">{{ permanent_deletes }}</div>
+                <small>Tasa: {{ permanent_delete_rate }}%</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alertas -->
+    {% if near_auto_delete > 0 or ready_for_auto_delete > 0 %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Atención:</strong>
+                {% if ready_for_auto_delete > 0 %}
+                    {{ ready_for_auto_delete }} elemento(s) listo(s) para eliminación automática.
+                {% endif %}
+                {% if near_auto_delete > 0 %}
+                    {{ near_auto_delete }} elemento(s) cerca de eliminación automática.
+                {% endif %}
+                <a href="{% url 'core:recycle_bin_list' %}?quick_filter=expiring_soon" class="alert-link">Ver elementos</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Gráfico por Módulo -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-layer-group"></i> Elementos por Módulo</h4>
+                <div class="chart-container">
+                    <canvas id="moduleChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Restauraciones vs Eliminaciones -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-chart-pie"></i> Restauraciones vs Eliminaciones</h4>
+                <div class="chart-container">
+                    <canvas id="operationsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Gráfico por Tiempo -->
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-chart-area"></i> Tendencia en el Tiempo</h4>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if is_admin %}
+    <div class="row">
+        <!-- Gráfico por Usuario -->
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-users"></i> Top 10 Usuarios con Más Eliminaciones</h4>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="userChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Elementos Recientes -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-trash-alt"></i> Eliminaciones Recientes</h4>
+                {% if recent_deletions %}
+                <ul class="recent-items-list">
+                    {% for entry in recent_deletions %}
+                    <li class="recent-item">
+                        <div>
+                            <span class="module-badge {{ entry.module_name }}">{{ entry.module_name }}</span>
+                            <strong>{{ entry.object_repr|truncatechars:50 }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                Por {{ entry.deleted_by.username }} - {{ entry.deleted_at|date:"d/m/Y H:i" }}
+                            </small>
+                        </div>
+                        <a href="{% url 'core:recycle_bin_detail' entry.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">No hay eliminaciones recientes</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-undo"></i> Restauraciones Recientes</h4>
+                {% if recent_restorations %}
+                <ul class="recent-items-list">
+                    {% for entry in recent_restorations %}
+                    <li class="recent-item">
+                        <div>
+                            <span class="module-badge {{ entry.module_name }}">{{ entry.module_name }}</span>
+                            <strong>{{ entry.object_repr|truncatechars:50 }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                Por {{ entry.restored_by.username }} - {{ entry.restored_at|date:"d/m/Y H:i" }}
+                            </small>
+                        </div>
+                        <span class="badge badge-success">Restaurado</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">No hay restauraciones recientes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Estadísticas Detalladas -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-table"></i> Estadísticas Detalladas por Módulo</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Módulo</th>
+                            <th>Total Eliminados</th>
+                            <th>Restaurados</th>
+                            <th>Pendientes</th>
+                            <th>Tasa de Restauración</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_by_module %}
+                        <tr>
+                            <td><span class="module-badge {{ stat.module_name }}">{{ stat.module_name }}</span></td>
+                            <td>{{ stat.total }}</td>
+                            <td>{{ stat.restored }}</td>
+                            <td>{{ stat.pending }}</td>
+                            <td>
+                                {% widthratio stat.restored stat.total 100 %}%
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No hay datos disponibles</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% if is_admin and stats_by_user %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-user-chart"></i> Estadísticas por Usuario</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Total Eliminados</th>
+                            <th>Restaurados</th>
+                            <th>Pendientes</th>
+                            <th>Tasa de Restauración</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in stats_by_user %}
+                        <tr>
+                            <td>
+                                {% if stat.deleted_by__first_name and stat.deleted_by__last_name %}
+                                    {{ stat.deleted_by__first_name }} {{ stat.deleted_by__last_name }}
+                                {% else %}
+                                    {{ stat.deleted_by__username }}
+                                {% endif %}
+                            </td>
+                            <td>{{ stat.total }}</td>
+                            <td>{{ stat.restored }}</td>
+                            <td>{{ stat.pending }}</td>
+                            <td>
+                                {% widthratio stat.restored stat.total 100 %}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Botones de Exportación -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="dashboard-card">
+                <h4><i class="fas fa-download"></i> Exportar Reportes</h4>
+                <p class="text-muted">Descarga los datos de la papelera en diferentes formatos</p>
+                <div class="export-buttons">
+                    <a href="{% url 'core:recycle_bin_export_report' %}?format=csv&date_range={{ date_range }}" 
+                       class="btn btn-success">
+                        <i class="fas fa-file-csv"></i> Exportar CSV
+                    </a>
+                    <a href="{% url 'core:recycle_bin_export_report' %}?format=json&date_range={{ date_range }}" 
+                       class="btn btn-info">
+                        <i class="fas fa-file-code"></i> Exportar JSON
+                    </a>
+                    <a href="{% url 'core:recycle_bin_export_report' %}?format=csv&date_range={{ date_range }}&status=pending" 
+                       class="btn btn-warning">
+                        <i class="fas fa-file-csv"></i> Exportar Solo Pendientes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Datos de los gráficos
+    const moduleData = {{ module_chart_data|safe }};
+    const userData = {{ user_chart_data|safe }};
+    const timeData = {{ time_chart_data|safe }};
+    
+    // Configuración de colores
+    const colors = {
+        primary: 'rgba(102, 126, 234, 0.8)',
+        success: 'rgba(67, 233, 123, 0.8)',
+        warning: 'rgba(245, 87, 108, 0.8)',
+        info: 'rgba(74, 172, 254, 0.8)',
+    };
+    
+    // Gráfico por Módulo (Barras Agrupadas)
+    const moduleCtx = document.getElementById('moduleChart').getContext('2d');
+    new Chart(moduleCtx, {
+        type: 'bar',
+        data: {
+            labels: moduleData.labels,
+            datasets: [
+                {
+                    label: 'Total Eliminados',
+                    data: moduleData.deleted,
+                    backgroundColor: colors.primary,
+                },
+                {
+                    label: 'Restaurados',
+                    data: moduleData.restored,
+                    backgroundColor: colors.success,
+                },
+                {
+                    label: 'Pendientes',
+                    data: moduleData.pending,
+                    backgroundColor: colors.warning,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Gráfico de Operaciones (Pie)
+    const operationsCtx = document.getElementById('operationsChart').getContext('2d');
+    new Chart(operationsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Restaurados', 'Pendientes', 'Eliminados Permanentemente'],
+            datasets: [{
+                data: [{{ total_restored }}, {{ total_pending }}, {{ permanent_deletes }}],
+                backgroundColor: [
+                    colors.success,
+                    colors.info,
+                    colors.warning,
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Gráfico por Tiempo (Línea)
+    const timeCtx = document.getElementById('timeChart').getContext('2d');
+    new Chart(timeCtx, {
+        type: 'line',
+        data: {
+            labels: timeData.labels,
+            datasets: [
+                {
+                    label: 'Eliminados',
+                    data: timeData.deleted,
+                    borderColor: colors.primary,
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Restaurados',
+                    data: timeData.restored,
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    {% if is_admin %}
+    // Gráfico por Usuario (Barras Horizontales)
+    const userCtx = document.getElementById('userChart').getContext('2d');
+    new Chart(userCtx, {
+        type: 'bar',
+        data: {
+            labels: userData.labels,
+            datasets: [
+                {
+                    label: 'Total Eliminados',
+                    data: userData.deleted,
+                    backgroundColor: colors.primary,
+                },
+                {
+                    label: 'Restaurados',
+                    data: userData.restored,
+                    backgroundColor: colors.success,
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

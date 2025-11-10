@@ -1,0 +1,101 @@
+{% extends "notificaciones/email_base.html" %}
+
+{% block content %}
+<div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+    <h2 style="color: #721c24; margin-top: 0;">🚨 ADVERTENCIA FINAL - Eliminación Inminente</h2>
+    <p style="color: #721c24; font-size: 16px;">
+        <strong>¡ÚLTIMA OPORTUNIDAD!</strong> Los siguientes elementos serán eliminados permanentemente en las próximas 24 horas.
+    </p>
+</div>
+
+<div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border: 2px solid #ffc107;">
+    <p style="color: #856404; margin: 0; font-size: 15px;">
+        ⏰ <strong>Tiempo restante:</strong> Menos de 24 horas para restaurar estos elementos.
+    </p>
+</div>
+
+<div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="color: #333; margin-top: 0;">Elementos a Eliminar</h3>
+    
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <thead>
+            <tr style="background-color: #dc3545; color: white;">
+                <th style="padding: 10px; text-align: left;">Módulo</th>
+                <th style="padding: 10px; text-align: center;">Cantidad</th>
+                <th style="padding: 10px; text-align: center;">Eliminación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in datos_contexto.items_by_module %}
+            <tr style="background-color: {% cycle '#ffffff' '#f8f9fa' %};">
+                <td style="padding: 10px; border-bottom: 1px solid #dee2e6;">
+                    <strong>{{ item.module_display }}</strong>
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">
+                    <span style="background-color: #dc3545; color: white; padding: 3px 10px; border-radius: 3px; font-weight: bold;">
+                        {{ item.count }}
+                    </span>
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">
+                    <span style="color: #dc3545; font-weight: bold;">
+                        {% if item.hours_remaining < 24 %}
+                            {{ item.hours_remaining }} hora{{ item.hours_remaining|pluralize }}
+                        {% else %}
+                            Menos de 24 horas
+                        {% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 20px; padding: 15px; background-color: #fff; border-radius: 5px; border: 2px solid #dc3545;">
+        <p style="margin: 0; color: #721c24; font-size: 16px;">
+            <strong>⚠️ Total de elementos en riesgo:</strong> {{ datos_contexto.total_items }}
+        </p>
+    </div>
+</div>
+
+{% if datos_contexto.sample_items %}
+<div style="background-color: #fff; padding: 20px; border-radius: 5px; margin: 20px 0; border: 1px solid #dee2e6;">
+    <h3 style="color: #333; margin-top: 0;">Ejemplos de Elementos</h3>
+    <ul style="color: #666; line-height: 1.8;">
+        {% for sample in datos_contexto.sample_items %}
+        <li>
+            <strong>{{ sample.module_display }}:</strong> {{ sample.object_repr }}
+            <span style="color: #999; font-size: 13px;">(Eliminado el {{ sample.deleted_at|date:"d/m/Y" }})</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div style="background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #0c5460; margin-top: 0;">⚡ Acción Inmediata Requerida</h3>
+    <p style="color: #0c5460; margin: 10px 0;">
+        Si necesitas conservar alguno de estos elementos, debes restaurarlos <strong>AHORA</strong>. 
+        Una vez eliminados permanentemente, <strong>NO PODRÁN SER RECUPERADOS</strong>.
+    </p>
+    <ul style="color: #0c5460; line-height: 1.8;">
+        <li>Accede a la papelera de reciclaje</li>
+        <li>Revisa los elementos listados</li>
+        <li>Restaura los que necesites conservar</li>
+        <li>Los elementos no restaurados se eliminarán automáticamente</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ base_url }}/core/recycle-bin/" 
+       style="display: inline-block; padding: 15px 40px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        🚨 ACCEDER A LA PAPELERA AHORA
+    </a>
+</div>
+
+<div style="margin-top: 30px; padding: 15px; background-color: #f8d7da; border-radius: 5px; border: 1px solid #dc3545;">
+    <p style="margin: 0; color: #721c24; font-size: 14px;">
+        <strong>⚠️ ADVERTENCIA:</strong> Esta es tu última notificación antes de la eliminación permanente. 
+        Después de {{ datos_contexto.hours_until_deletion }} horas, estos elementos serán eliminados de forma irreversible.
+    </p>
+</div>
+{% endblock %}

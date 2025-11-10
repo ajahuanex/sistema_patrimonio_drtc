@@ -162,13 +162,17 @@ class BienPatrimonialImporter:
         'C': ['CHATARRA', 'C']
     }
     
-    def __init__(self):
+    def __init__(self, usuario=None, archivo_nombre='', permitir_duplicados_denominacion=True):
         self.errores = []
         self.warnings = []
+        self.observaciones = []
         self.registros_procesados = 0
         self.registros_creados = 0
         self.registros_actualizados = 0
         self.qr_generados = 0
+        self.usuario = usuario
+        self.archivo_nombre = archivo_nombre
+        self.permitir_duplicados_denominacion = permitir_duplicados_denominacion
     
     def validar_archivo(self, archivo_path):
         """Valida que el archivo Excel tenga la estructura correcta"""
@@ -279,6 +283,8 @@ class BienPatrimonialImporter:
     
     def procesar_fila(self, row, indices_columnas, row_num, actualizar_existentes):
         """Procesa una fila individual del Excel"""
+        from apps.catalogo.models import ImportObservation
+        
         # Extraer datos de la fila
         datos = {}
         for col_name, col_index in indices_columnas.items():
@@ -301,25 +307,93 @@ class BienPatrimonialImporter:
         
         # Buscar catálogo por denominación
         catalogo = None
+        catalogos_encontrados = []
+        
         if denominacion_bien:
             try:
-                catalogo = Catalogo.objects.filter(
+                # Buscar coincidencias exactas o parciales
+                catalogos_encontrados = list(Catalogo.objects.filter(
                     denominacion__icontains=denominacion_bien,
                     estado='ACTIVO'
-                ).first()
+                ))
                 
-                if not catalogo:
-                    # Buscar por coincidencia parcial
+                if catalogos_encontrados:
+                    # Si hay múltiples coincidencias, registrar observación
+                    if len(catalogos_encontrados) > 1:
+                        obs = ImportObservation.crear_observacion(
+                            modulo='bienes',
+                            tipo='duplicado_denominacion',
+                            fila_excel=row_num,
+                            campo='DENOMINACION_BIEN',
+                            mensaje=f"Se encontraron {len(catalogos_encontrados)} catálogos con denominación similar a '{denominacion_bien}'. Se usó el primero: {catalogos_encontrados[0].codigo}",
+                            valor_original=denominacion_bien,
+                            valor_procesado=catalogos_encontrados[0].denominacion,
+                            severidad='warning',
+                            usuario=self.usuario,
+                            archivo_nombre=self.archivo_nombre,
+                            datos_adicionales={
+                                'codigo_patrimonial': codigo_patrimonial,
+                                'catalogos_encontrados': [
+                                    {'codigo': c.codigo, 'denominacion': c.denominacion} 
+                                    for c in catalogos_encontrados
+                                ],
+                                'catalogo_usado': catalogos_encontrados[0].codigo
+                            }
+                        )
+                        self.observaciones.append(obs)
+                        self.warnings.append(f"Fila {row_num}: Múltiples catálogos encontrados para '{denominacion_bien}', se usó {catalogos_encontrados[0].codigo}")
+                    
+                    catalogo = catalogos_encontrados[0]
+                else:
+                    # Buscar por coincidencia parcial (primera palabra)
                     palabras = denominacion_bien.split()
                     if palabras:
-                        catalogo = Catalogo.objects.filter(
+                        catalogos_encontrados = list(Catalogo.objects.filter(
                             denominacion__icontains=palabras[0],
                             estado='ACTIVO'
-                        ).first()
-            except Exception:
-                pass
+                        ))
+                        
+                        if catalogos_encontrados:
+                            obs = ImportObservation.crear_observacion(
+                                modulo='bienes',
+                                tipo='referencia_faltante',
+                                fila_excel=row_num,
+                                campo='DENOMINACION_BIEN',
+                                mensaje=f"No se encontró coincidencia exacta para '{denominacion_bien}'. Se usó coincidencia parcial: {catalogos_encontrados[0].codigo} - {catalogos_encontrados[0].denominacion}",
+                                valor_original=denominacion_bien,
+                                valor_procesado=catalogos_encontrados[0].denominacion,
+                                severidad='warning',
+                                usuario=self.usuario,
+                                archivo_nombre=self.archivo_nombre,
+                                datos_adicionales={
+                                    'codigo_patrimonial': codigo_patrimonial,
+                                    'catalogo_usado': catalogos_encontrados[0].codigo,
+                                    'tipo_coincidencia': 'parcial'
+                                }
+                            )
+                            self.observaciones.append(obs)
+                            self.warnings.append(f"Fila {row_num}: Coincidencia parcial para '{denominacion_bien}', se usó {catalogos_encontrados[0].codigo}")
+                            catalogo = catalogos_encontrados[0]
+            except Exception as e:
+                self.errores.append(f"Fila {row_num}: Error al buscar catálogo: {str(e)}")
         
         if not catalogo:
+            obs = ImportObservation.crear_observacion(
+                modulo='bienes',
+                tipo='referencia_faltante',
+                fila_excel=row_num,
+                campo='DENOMINACION_BIEN',
+                mensaje=f"No se encontró catálogo para la denominación '{denominacion_bien}'",
+                valor_original=denominacion_bien,
+                valor_procesado='',
+                severidad='error',
+                usuario=self.usuario,
+                archivo_nombre=self.archivo_nombre,
+                datos_adicionales={
+                    'codigo_patrimonial': codigo_patrimonial
+                }
+            )
+            self.observaciones.append(obs)
             self.warnings.append(f"Fila {row_num}: No se encontró catálogo para '{denominacion_bien}', omitida")
             return
         
@@ -427,18 +501,26 @@ class BienPatrimonialImporter:
             'qr_generados': self.qr_generados,
             'errores': self.errores,
             'warnings': self.warnings,
+            'observaciones': self.observaciones,
+            'total_observaciones': len(self.observaciones),
             'resumen': f"Procesados: {self.registros_procesados}, "
                       f"Creados: {self.registros_creados}, "
                       f"Actualizados: {self.registros_actualizados}, "
                       f"QR generados: {self.qr_generados}, "
                       f"Errores: {len(self.errores)}, "
-                      f"Advertencias: {len(self.warnings)}"
+                      f"Advertencias: {len(self.warnings)}, "
+                      f"Observaciones: {len(self.observaciones)}"
         }
 
 
-def importar_bienes_desde_excel(archivo_path, actualizar_existentes=False):
+def importar_bienes_desde_excel(archivo_path, actualizar_existentes=False, usuario=None,
+                                archivo_nombre='', permitir_duplicados_denominacion=True):
     """Función helper para importar bienes patrimoniales"""
-    importer = BienPatrimonialImporter()
+    importer = BienPatrimonialImporter(
+        usuario=usuario,
+        archivo_nombre=archivo_nombre,
+        permitir_duplicados_denominacion=permitir_duplicados_denominacion
+    )
     return importer.procesar_archivo(archivo_path, actualizar_existentes)
 
 

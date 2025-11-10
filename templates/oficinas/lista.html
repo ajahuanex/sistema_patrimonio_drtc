@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load recycle_bin_quick_access %}
 
 {% block title %}Lista de Oficinas - Sistema de Patrimonio{% endblock %}
 
@@ -7,6 +8,9 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
+            <!-- Quick Access to Recycle Bin -->
+            {% recycle_bin_quick_access 'oficinas' %}
+            
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">
                     <i class="fas fa-building"></i>

@@ -133,7 +133,11 @@
 
 ## Fase 3: Interfaz de Papelera Centralizada
 
-- [ ] 10. Crear vistas principales de papelera
+- [x] 10. Crear vistas principales de papelera
+
+
+
+
 
   - Implementar RecycleBinListView con paginación y filtros
   - Crear RecycleBinDetailView para vista previa de objetos eliminados
@@ -141,28 +145,48 @@
   - Agregar BulkRestoreView para operaciones en lote
   - _Requirements: 2.1, 2.2, 3.1, 7.1_
 
-- [ ] 11. Implementar sistema de filtros avanzados
+- [x] 11. Implementar sistema de filtros avanzados
+
+
+
+
+
   - Crear filtros por módulo (oficinas, bienes, catálogo)
   - Implementar filtro por fecha de eliminación (rango)
   - Agregar filtro por usuario que eliminó
   - Crear filtro por tiempo restante antes de eliminación automática
   - _Requirements: 2.3, 2.4_
 
-- [ ] 12. Crear formularios de restauración y eliminación
+- [x] 12. Crear formularios de restauración y eliminación
+
+
+
+
+
   - Implementar RestoreForm con validación de conflictos
   - Crear PermanentDeleteForm con campo de código de seguridad
   - Agregar BulkOperationForm para operaciones múltiples
   - Implementar validaciones JavaScript en tiempo real
   - _Requirements: 3.3, 3.4, 4.3, 7.4_
 
-- [ ] 13. Desarrollar templates de papelera
+- [x] 13. Desarrollar templates de papelera
+
+
+
+
+
   - Crear template recycle_bin/list.html con tabla responsive
   - Implementar recycle_bin/detail.html con vista previa de datos
   - Crear modales para confirmación de operaciones
   - Agregar iconografía intuitiva y estados visuales
   - _Requirements: 7.1, 7.2, 7.4_
 
-- [ ] 14. Implementar eliminación permanente con código de seguridad
+- [x] 14. Implementar eliminación permanente con código de seguridad
+
+
+
+
+
   - Crear vista PermanentDeleteView con validación de código
   - Implementar validación contra variable PERMANENT_DELETE_CODE
   - Agregar logging de intentos de uso del código
@@ -171,28 +195,47 @@
 
 ## Fase 4: Automatización y Notificaciones
 
-- [ ] 15. Implementar eliminación automática por tiempo
+- [x] 15. Implementar eliminación automática por tiempo
+
+
+
+
+
   - Crear comando de management cleanup_recycle_bin
   - Implementar lógica de eliminación basada en auto_delete_at
   - Agregar configuración de días de retención por módulo
   - Crear tarea de Celery para ejecución automática
   - _Requirements: 5.1, 5.2, 5.5_
 
-- [ ] 16. Sistema de notificaciones de advertencia
+- [x] 16. Sistema de notificaciones de advertencia
+
+
+
+
+
   - Implementar notificación 7 días antes de eliminación automática
   - Crear notificación final 1 día antes de eliminación
   - Agregar templates de email para notificaciones
   - Implementar sistema de preferencias de notificación por usuario
   - _Requirements: 5.3, 5.4_
 
-- [ ] 17. Crear dashboard de estadísticas de papelera
+- [x] 17. Crear dashboard de estadísticas de papelera
+
+
+
+
+
   - Implementar vista de estadísticas con gráficos
   - Mostrar elementos por módulo, usuario y tiempo
   - Agregar métricas de restauraciones vs eliminaciones permanentes
   - Crear exportación de reportes de papelera
   - _Requirements: 2.2, 6.4_
 
-- [ ] 18. Comandos de management para administración
+- [x] 18. Comandos de management para administración
+
+
+
+
   - Crear comando setup_recycle_bin para configuración inicial
   - Implementar comando restore_from_backup para emergencias
   - Agregar comando generate_recycle_report para auditoría
@@ -201,42 +244,72 @@
 
 ## Fase 5: Auditoría y Seguridad Completa
 
-- [ ] 19. Implementar DeletionAuditLog completo
+- [x] 19. Implementar DeletionAuditLog completo
+
+
+
+
+
+
+
+
   - Crear modelo DeletionAuditLog con todas las acciones
   - Implementar logging automático en todas las operaciones
   - Agregar campos de contexto (IP, User-Agent, timestamp)
   - Crear snapshot de datos del objeto antes de eliminación permanente
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 20. Sistema de permisos granular
+- [x] 20. Sistema de permisos granular
+
+
+
+
+
   - Implementar permisos específicos (can_view_recycle_bin, can_restore_items)
   - Crear grupos de permisos por rol (administrador, funcionario, auditor)
   - Agregar validaciones de permisos en todas las vistas
   - Implementar segregación de datos por usuario
   - _Requirements: 8.1, 8.2, 8.3, 2.6_
 
-- [ ] 21. Protección contra ataques de seguridad
+- [x] 21. Protección contra ataques de seguridad
+
+
+
+
+
+
+
+
   - Implementar rate limiting para intentos de código de seguridad
   - Agregar CAPTCHA después de múltiples intentos fallidos
   - Crear sistema de bloqueo temporal de usuarios
   - Implementar logging detallado de intentos de acceso no autorizado
   - _Requirements: 8.4, 4.4_
 
-- [ ] 22. Crear reportes de auditoría de eliminaciones
+- [x] 22. Crear reportes de auditoría de eliminaciones
+
+
+
+
+
   - Implementar vista de reportes de auditoría con filtros avanzados
   - Crear exportación de logs de auditoría a PDF y Excel
   - Agregar gráficos de tendencias de eliminaciones por período
   - Implementar alertas automáticas para patrones sospechosos
   - _Requirements: 6.4, 6.1_
 
-- [ ] 23. Optimizaciones de rendimiento y caché
+- [x] 23. Optimizaciones de rendimiento y caché
+
+
+
+
+
   - Implementar caché de estadísticas de papelera
   - Optimizar consultas con select_related y prefetch_related
   - Agregar índices de base de datos para consultas frecuentes
   - Crear sistema de paginación eficiente para grandes volúmenes
   - _Requirements: Performance Optimizations_
-
-- [ ] 24. Tests de integración y seguridad completos
+- [x] 24. Tests de integración y seguridad completos
   - Crear test suite completo para todos los componentes
   - Implementar tests de carga para operaciones masivas
   - Agregar tests de seguridad para validar controles de acceso
@@ -245,30 +318,67 @@
 
 ## Fase 6: Integración Final y Documentación
 
-- [ ] 25. Integrar papelera en navegación principal
+- [x] 25. Integrar papelera en navegación principal
   - Agregar enlace a papelera en menú principal del sistema
   - Crear badges con contadores de elementos en papelera
   - Implementar notificaciones en tiempo real de elementos próximos a eliminarse
   - Agregar accesos rápidos desde listados de cada módulo
   - _Requirements: 7.1, 9.1_
 
-- [ ] 26. Crear documentación completa del sistema
+- [x] 26. Configurar tareas de Celery para automatización
+
+
+
+
+
+
+
+
+
+  - Crear tarea periódica de Celery para ejecutar cleanup_recycle_bin automáticamente
+  - Implementar tarea de Celery para envío de notificaciones de advertencia (7 días antes)
+  - Implementar tarea de Celery para notificaciones finales (1 día antes)
+  - Agregar configuración de schedule en celery.py usando celery beat
+  - Configurar CELERY_BEAT_SCHEDULE con las tareas periódicas
+  - Crear tests para verificar ejecución de tareas periódicas
+  - _Requirements: 5.1, 5.2, 5.3, 5.4_
+
+- [x] 27. Crear documentación completa del sistema
+
+
+
+
+
   - Escribir guía de usuario para operaciones de papelera
   - Crear documentación técnica para desarrolladores
-  - Implementar ayuda contextual en la interfaz
+  - Documentar comandos de management disponibles
   - Agregar ejemplos de configuración y uso avanzado
+  - Documentar variables de entorno necesarias
   - _Requirements: Documentation_
 
-- [ ] 27. Configurar variables de entorno de producción
-  - Definir PERMANENT_DELETE_CODE en variables de entorno
-  - Configurar RECYCLE_BIN_RETENTION_DAYS por defecto
-  - Establecer RECYCLE_BIN_AUTO_CLEANUP_ENABLED
-  - Documentar todas las variables de configuración
+- [x] 28. Configurar variables de entorno de producción
+
+
+
+
+
+  - Agregar PERMANENT_DELETE_CODE a .env.prod.example con valor de ejemplo
+  - Agregar PERMANENT_DELETE_CODE a settings.py para leerlo desde entorno
+  - Documentar RECAPTCHA_PUBLIC_KEY y RECAPTCHA_PRIVATE_KEY para CAPTCHA
+  - Agregar configuración de Celery Beat para tareas periódicas
+  - Documentar todas las variables de configuración en .env.prod.example
+  - Crear guía de configuración para deployment en documentación
   - _Requirements: 4.2, 10.4_
 
-- [ ] 28. Realizar pruebas finales y deployment
-  - Ejecutar suite completo de tests en ambiente de staging
-  - Realizar pruebas de carga con datos reales
-  - Validar funcionamiento con usuarios finales
-  - Crear plan de rollback en caso de problemas
+- [x] 29. Realizar pruebas finales de integración
+
+
+
+
+
+  - Ejecutar suite completo de tests en ambiente de desarrollo
+  - Validar flujos end-to-end de eliminación y restauración
+  - Verificar funcionamiento de notificaciones
+  - Probar eliminación automática con datos de prueba
+  - Validar permisos y seguridad en diferentes roles
   - _Requirements: All Requirements Validation_

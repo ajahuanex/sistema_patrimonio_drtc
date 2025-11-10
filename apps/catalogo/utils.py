@@ -8,7 +8,7 @@ class CatalogoImporter:
     """Clase para importar catálogo desde archivos Excel"""
     
     COLUMNAS_REQUERIDAS = [
-        'CATLOGO',  # Nota: puede tener variaciones en el nombre
+        'CATALOGO',  # Nota: puede tener variaciones en el nombre
         'Denominación',
         'Grupo',
         'Clase',
@@ -17,17 +17,21 @@ class CatalogoImporter:
     ]
     
     COLUMNAS_ALTERNATIVAS = {
-        'CATLOGO': ['CATALOGO', 'CÓDIGO', 'CODIGO'],
+        'CATALOGO': ['CATÁLOGO', 'CATLOGO', 'CÓDIGO', 'CODIGO'],
         'Denominación': ['DENOMINACION', 'DENOMINACIÓN BIEN', 'DENOMINACION BIEN'],
         'Estado': ['ESTADO']
     }
     
-    def __init__(self):
+    def __init__(self, usuario=None, archivo_nombre='', permitir_duplicados_denominacion=True):
         self.errores = []
         self.warnings = []
+        self.observaciones = []
         self.registros_procesados = 0
         self.registros_creados = 0
         self.registros_actualizados = 0
+        self.usuario = usuario
+        self.archivo_nombre = archivo_nombre
+        self.permitir_duplicados_denominacion = permitir_duplicados_denominacion
     
     def validar_archivo(self, archivo_path):
         """Valida que el archivo Excel tenga la estructura correcta"""
@@ -114,6 +118,8 @@ class CatalogoImporter:
     
     def procesar_fila(self, row, indices_columnas, row_num, actualizar_existentes):
         """Procesa una fila individual del Excel"""
+        from .models import ImportObservation
+        
         # Extraer datos de la fila
         datos = {}
         for col_name, col_index in indices_columnas.items():
@@ -121,12 +127,12 @@ class CatalogoImporter:
             datos[col_name] = str(cell_value).strip() if cell_value else ''
         
         # Validar datos requeridos
-        if not datos.get('CATLOGO') or not datos.get('Denominación'):
+        if not datos.get('CATALOGO') or not datos.get('Denominación'):
             self.warnings.append(f"Fila {row_num}: Código o denominación vacíos, omitida")
             return
         
         # Normalizar datos
-        codigo = datos['CATLOGO']
+        codigo = datos['CATALOGO']
         denominacion = datos['Denominación'].upper()
         grupo = datos.get('Grupo', '')
         clase = datos.get('Clase', '')
@@ -138,15 +144,54 @@ class CatalogoImporter:
             estado = 'ACTIVO'
             self.warnings.append(f"Fila {row_num}: Estado inválido, se asignó ACTIVO")
         
-        # Verificar si ya existe
+        # Verificar si ya existe por código (incluyendo eliminados)
         catalogo_existente = None
         try:
-            catalogo_existente = Catalogo.objects.get(codigo=codigo)
+            catalogo_existente = Catalogo.objects.with_deleted().get(codigo=codigo)
         except Catalogo.DoesNotExist:
             pass
         
+        # Verificar duplicados de denominación
+        denominacion_duplicada = False
+        if not catalogo_existente:
+            # Solo verificar duplicados si es un registro nuevo
+            duplicados_denominacion = Catalogo.objects.filter(denominacion=denominacion)
+            if duplicados_denominacion.exists():
+                denominacion_duplicada = True
+                
+                # Registrar observación
+                obs = ImportObservation.crear_observacion(
+                    modulo='catalogo',
+                    tipo='duplicado_denominacion',
+                    fila_excel=row_num,
+                    campo='Denominación',
+                    mensaje=f"La denominación '{denominacion}' ya existe en el catálogo con código(s): {', '.join([d.codigo for d in duplicados_denominacion])}",
+                    valor_original=denominacion,
+                    valor_procesado=denominacion,
+                    severidad='warning',
+                    usuario=self.usuario,
+                    archivo_nombre=self.archivo_nombre,
+                    datos_adicionales={
+                        'codigo_nuevo': codigo,
+                        'codigos_existentes': [d.codigo for d in duplicados_denominacion],
+                        'permitido': self.permitir_duplicados_denominacion
+                    }
+                )
+                self.observaciones.append(obs)
+                
+                if not self.permitir_duplicados_denominacion:
+                    self.errores.append(f"Fila {row_num}: Denominación '{denominacion}' duplicada, registro omitido")
+                    return
+                else:
+                    self.warnings.append(f"Fila {row_num}: Denominación '{denominacion}' duplicada, pero se permite continuar")
+        
         if catalogo_existente:
             if actualizar_existentes:
+                # Si está eliminado, restaurarlo primero
+                if hasattr(catalogo_existente, 'is_deleted') and catalogo_existente.is_deleted:
+                    catalogo_existente.restore()
+                    self.warnings.append(f"Fila {row_num}: Catálogo {codigo} estaba eliminado, se restauró")
+                
                 # Actualizar existente
                 catalogo_existente.denominacion = denominacion
                 catalogo_existente.grupo = grupo
@@ -156,7 +201,11 @@ class CatalogoImporter:
                 catalogo_existente.save()
                 self.registros_actualizados += 1
             else:
-                self.warnings.append(f"Fila {row_num}: Código {codigo} ya existe, omitido")
+                # Verificar si está eliminado
+                if hasattr(catalogo_existente, 'is_deleted') and catalogo_existente.is_deleted:
+                    self.warnings.append(f"Fila {row_num}: Código {codigo} existe pero está eliminado, omitido")
+                else:
+                    self.warnings.append(f"Fila {row_num}: Código {codigo} ya existe, omitido")
         else:
             # Crear nuevo
             try:
@@ -184,17 +233,25 @@ class CatalogoImporter:
             'registros_actualizados': self.registros_actualizados,
             'errores': self.errores,
             'warnings': self.warnings,
+            'observaciones': self.observaciones,
+            'total_observaciones': len(self.observaciones),
             'resumen': f"Procesados: {self.registros_procesados}, "
                       f"Creados: {self.registros_creados}, "
                       f"Actualizados: {self.registros_actualizados}, "
                       f"Errores: {len(self.errores)}, "
-                      f"Advertencias: {len(self.warnings)}"
+                      f"Advertencias: {len(self.warnings)}, "
+                      f"Observaciones: {len(self.observaciones)}"
         }
 
 
-def importar_catalogo_desde_excel(archivo_path, actualizar_existentes=False):
+def importar_catalogo_desde_excel(archivo_path, actualizar_existentes=False, usuario=None, 
+                                  archivo_nombre='', permitir_duplicados_denominacion=True):
     """Función helper para importar catálogo"""
-    importer = CatalogoImporter()
+    importer = CatalogoImporter(
+        usuario=usuario,
+        archivo_nombre=archivo_nombre,
+        permitir_duplicados_denominacion=permitir_duplicados_denominacion
+    )
     return importer.procesar_archivo(archivo_path, actualizar_existentes)
 
 

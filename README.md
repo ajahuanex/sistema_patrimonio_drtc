@@ -14,6 +14,7 @@ Sistema integral para la gestión del patrimonio de la Dirección Regional de Tr
 - **Acceso móvil** con escaneo QR y trabajo offline
 - **Control de usuarios** y permisos granulares
 - **Historial completo** de movimientos y cambios
+- **🗑️ Sistema de Papelera de Reciclaje** con soft delete y recuperación de registros
 
 ## 🛠️ Tecnologías
 
@@ -331,10 +332,19 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ## 📚 Documentación
 
+### Documentación General
 - **[Guía de Instalación](docs/INSTALLATION.md)**: Instalación completa paso a paso
 - **[Guía de Mantenimiento](docs/MAINTENANCE.md)**: Procedimientos de mantenimiento y monitoreo
 - **[Guía de Administrador](docs/ADMIN_GUIDE.md)**: Manual de usuario para administradores
 - **[Gestión de Usuarios](docs/USER_MANAGEMENT.md)**: Configuración de usuarios y permisos
+
+### Sistema de Papelera de Reciclaje
+- **[📖 Índice de Documentación](docs/RECYCLE_BIN_INDEX.md)**: Índice completo de toda la documentación
+- **[🚀 Guía de Inicio Rápido](docs/RECYCLE_BIN_QUICK_START.md)**: Implementación en 10 minutos
+- **[👤 Guía de Usuario](docs/RECYCLE_BIN_USER_GUIDE.md)**: Cómo usar la papelera de reciclaje
+- **[⚙️ Guía de Configuración](docs/RECYCLE_BIN_CONFIGURATION.md)**: Variables de entorno y configuración
+- **[💻 Guía Técnica](docs/RECYCLE_BIN_TECHNICAL_GUIDE.md)**: Arquitectura y desarrollo
+- **[🔧 Comandos de Management](docs/RECYCLE_BIN_COMMANDS.md)**: Administración por línea de comandos
 
 ## 📞 Soporte
 

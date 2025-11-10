@@ -236,6 +236,219 @@ class SoftDeleteManagerOficinaTestCase(TestCase):
         self.assertEqual(restored_obj, self.deleted_oficina1)
 
 
+class OficinaDeleteOverrideTestCase(TestCase):
+    """Tests para el método delete() sobrescrito en Oficina"""
+    
+    def setUp(self):
+        """Configuración inicial"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.oficina = Oficina.objects.create(
+            nombre='Oficina Test',
+            codigo='TEST001',
+            responsable='Responsable Test',
+            created_by=self.user
+        )
+    
+    def test_delete_with_user_parameter(self):
+        """Test que delete() acepta parámetro user"""
+        result = self.oficina.delete(user=self.user, reason='Test deletion')
+        
+        self.assertTrue(result)
+        self.assertTrue(self.oficina.is_deleted)
+        self.assertEqual(self.oficina.deleted_by, self.user)
+        self.assertEqual(self.oficina.deletion_reason, 'Test deletion')
+    
+    def test_delete_without_parameters_uses_soft_delete(self):
+        """Test que delete() sin parámetros usa soft delete"""
+        result = self.oficina.delete()
+        
+        # Debe usar soft delete (retorna True/False, no tupla)
+        self.assertIsInstance(result, bool)
+        self.assertTrue(self.oficina.is_deleted)
+    
+    def test_delete_with_bienes_raises_validation_error(self):
+        """Test que delete() con bienes asignados lanza ValidationError"""
+        from apps.bienes.models import BienPatrimonial
+        from apps.catalogo.models import Catalogo
+        from django.core.exceptions import ValidationError
+        
+        # Crear catálogo
+        catalogo = Catalogo.objects.create(
+            codigo='04220001',
+            denominacion='Catálogo Test',
+            grupo='04 AGRICOLA Y PESQUERO',
+            clase='22 EQUIPO',
+            resolucion='001-2024/TEST',
+            created_by=self.user
+        )
+        
+        # Crear bien asignado a la oficina
+        bien = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP001',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        
+        # Intentar eliminar oficina con bienes debe fallar
+        with self.assertRaises(ValidationError) as context:
+            self.oficina.delete(user=self.user)
+        
+        # Verificar mensaje de error
+        self.assertIn('bienes patrimoniales', str(context.exception).lower())
+    
+    def test_delete_with_deleted_bienes_succeeds(self):
+        """Test que delete() con bienes eliminados (soft deleted) funciona"""
+        from apps.bienes.models import BienPatrimonial
+        from apps.catalogo.models import Catalogo
+        
+        # Crear catálogo
+        catalogo = Catalogo.objects.create(
+            codigo='04220002',
+            denominacion='Catálogo Test 2',
+            grupo='04 AGRICOLA Y PESQUERO',
+            clase='22 EQUIPO',
+            resolucion='001-2024/TEST',
+            created_by=self.user
+        )
+        
+        # Crear bien asignado a la oficina
+        bien = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP001',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        
+        # Eliminar el bien (soft delete)
+        bien.soft_delete(user=self.user)
+        
+        # Ahora eliminar la oficina debe funcionar
+        result = self.oficina.delete(user=self.user)
+        
+        self.assertTrue(result)
+        self.assertTrue(self.oficina.is_deleted)
+
+
+class OficinaPuedeEliminarseTestCase(TestCase):
+    """Tests para el método puede_eliminarse() actualizado"""
+    
+    def setUp(self):
+        """Configuración inicial"""
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.oficina = Oficina.objects.create(
+            nombre='Oficina Test',
+            codigo='TEST001',
+            responsable='Responsable Test',
+            created_by=self.user
+        )
+    
+    def test_puede_eliminarse_sin_bienes(self):
+        """Test que oficina sin bienes puede eliminarse"""
+        self.assertTrue(self.oficina.puede_eliminarse())
+    
+    def test_puede_eliminarse_con_bienes_activos(self):
+        """Test que oficina con bienes activos no puede eliminarse"""
+        from apps.bienes.models import BienPatrimonial
+        from apps.catalogo.models import Catalogo
+        
+        # Crear catálogo
+        catalogo = Catalogo.objects.create(
+            codigo='04220003',
+            denominacion='Catálogo Test 3',
+            grupo='04 AGRICOLA Y PESQUERO',
+            clase='22 EQUIPO',
+            resolucion='001-2024/TEST',
+            created_by=self.user
+        )
+        
+        # Crear bien activo
+        bien = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP001',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        
+        self.assertFalse(self.oficina.puede_eliminarse())
+    
+    def test_puede_eliminarse_con_bienes_eliminados(self):
+        """Test que oficina con solo bienes eliminados puede eliminarse"""
+        from apps.bienes.models import BienPatrimonial
+        from apps.catalogo.models import Catalogo
+        
+        # Crear catálogo
+        catalogo = Catalogo.objects.create(
+            codigo='04220004',
+            denominacion='Catálogo Test 4',
+            grupo='04 AGRICOLA Y PESQUERO',
+            clase='22 EQUIPO',
+            resolucion='001-2024/TEST',
+            created_by=self.user
+        )
+        
+        # Crear bien y eliminarlo
+        bien = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP001',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        bien.soft_delete(user=self.user)
+        
+        # Oficina debe poder eliminarse
+        self.assertTrue(self.oficina.puede_eliminarse())
+    
+    def test_puede_eliminarse_con_bienes_mixtos(self):
+        """Test que oficina con bienes activos y eliminados no puede eliminarse"""
+        from apps.bienes.models import BienPatrimonial
+        from apps.catalogo.models import Catalogo
+        
+        # Crear catálogo
+        catalogo = Catalogo.objects.create(
+            codigo='04220005',
+            denominacion='Catálogo Test 5',
+            grupo='04 AGRICOLA Y PESQUERO',
+            clase='22 EQUIPO',
+            resolucion='001-2024/TEST',
+            created_by=self.user
+        )
+        
+        # Crear bien activo
+        bien_activo = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP001',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        
+        # Crear bien eliminado
+        bien_eliminado = BienPatrimonial.objects.create(
+            codigo_patrimonial='BP002',
+            catalogo=catalogo,
+            oficina=self.oficina,
+            estado_bien='B',
+            created_by=self.user
+        )
+        bien_eliminado.soft_delete(user=self.user)
+        
+        # No debe poder eliminarse porque tiene un bien activo
+        self.assertFalse(self.oficina.puede_eliminarse())
+
+
 class SoftDeleteIntegrationOficinaTestCase(TestCase):
     """Tests de integración para el sistema de soft delete con Oficina"""
     

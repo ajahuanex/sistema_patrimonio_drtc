@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Auditoría - {{ log.object_repr }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .detail-card h3 {
+        margin-top: 0;
+        color: #366092;
+        font-size: 1.2em;
+        border-bottom: 2px solid #366092;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .detail-row {
+        display: flex;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #555;
+        min-width: 200px;
+    }
+    
+    .detail-value {
+        color: #333;
+        flex: 1;
+    }
+    
+    .action-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    
+    .action-soft-delete {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .action-restore {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .action-permanent-delete {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .success-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    
+    .success-yes {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .success-no {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .json-viewer {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .related-logs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .related-logs-table th {
+        background-color: #f8f9fa;
+        padding: 10px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .related-logs-table td {
+        padding: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .related-logs-table tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>🔍 Detalle de Auditoría</h1>
+                    <p class="text-muted">{{ log.object_repr }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:deletion_audit_reports' %}" class="btn btn-secondary">
+                        ← Volver a Reportes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información Principal -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h3>📋 Información General</h3>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Acción:</div>
+                    <div class="detail-value">
+                        <span class="action-badge action-{{ log.action }}">
+                            {{ log.get_action_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Usuario:</div>
+                    <div class="detail-value">{{ log.user.get_full_name|default:log.user.username }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Fecha y Hora:</div>
+                    <div class="detail-value">{{ log.timestamp|date:"Y-m-d H:i:s" }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Módulo:</div>
+                    <div class="detail-value">{{ log.module_name|title }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Objeto:</div>
+                    <div class="detail-value">{{ log.object_repr }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">ID del Objeto:</div>
+                    <div class="detail-value">{{ log.object_id }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Estado:</div>
+                    <div class="detail-value">
+                        <span class="success-badge success-{% if log.success %}yes{% else %}no{% endif %}">
+                            {% if log.success %}✓ Exitoso{% else %}✗ Fallido{% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                {% if not log.success and log.error_message %}
+                <div class="detail-row">
+                    <div class="detail-label">Mensaje de Error:</div>
+                    <div class="detail-value text-danger">{{ log.error_message }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h3>🌐 Información de Contexto</h3>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Dirección IP:</div>
+                    <div class="detail-value">{{ log.ip_address|default:"No disponible" }}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">User Agent:</div>
+                    <div class="detail-value">{{ log.user_agent|default:"No disponible"|truncatechars:100 }}</div>
+                </div>
+                
+                {% if log.reason %}
+                <div class="detail-row">
+                    <div class="detail-label">Motivo:</div>
+                    <div class="detail-value">{{ log.reason }}</div>
+                </div>
+                {% endif %}
+                
+                {% if log.security_code_used %}
+                <div class="detail-row">
+                    <div class="detail-label">Código de Seguridad:</div>
+                    <div class="detail-value">
+                        <span class="badge badge-warning">✓ Código de seguridad utilizado</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if log.recycle_bin_entry %}
+                <div class="detail-row">
+                    <div class="detail-label">Entrada en Papelera:</div>
+                    <div class="detail-value">
+                        <a href="{% url 'core:recycle_bin_detail' log.recycle_bin_entry.id %}" class="btn btn-sm btn-info">
+                            Ver en Papelera
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Snapshot del Objeto -->
+    {% if log.object_snapshot %}
+    <div class="row">
+        <div class="col-12">
+            <div class="detail-card">
+                <h3>📸 Snapshot del Objeto</h3>
+                <div class="json-viewer">
+                    <pre>{{ log.object_snapshot|pprint }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Estado Anterior (para restauraciones) -->
+    {% if log.previous_state %}
+    <div class="row">
+        <div class="col-12">
+            <div class="detail-card">
+                <h3>⏮️ Estado Anterior</h3>
+                <div class="json-viewer">
+                    <pre>{{ log.previous_state|pprint }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Metadatos Adicionales -->
+    {% if log.metadata %}
+    <div class="row">
+        <div class="col-12">
+            <div class="detail-card">
+                <h3>📊 Metadatos Adicionales</h3>
+                <div class="json-viewer">
+                    <pre>{{ log.metadata|pprint }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Logs Relacionados -->
+    {% if related_logs %}
+    <div class="row">
+        <div class="col-12">
+            <div class="detail-card">
+                <h3>🔗 Operaciones Relacionadas (Mismo Objeto)</h3>
+                <table class="related-logs-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for related_log in related_logs %}
+                        <tr>
+                            <td>{{ related_log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>{{ related_log.user.username }}</td>
+                            <td>
+                                <span class="action-badge action-{{ related_log.action }}">
+                                    {{ related_log.get_action_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="success-badge success-{% if related_log.success %}yes{% else %}no{% endif %}">
+                                    {% if related_log.success %}✓{% else %}✗{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'core:deletion_audit_detail' related_log.id %}" class="btn btn-sm btn-info">
+                                    Ver Detalle
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

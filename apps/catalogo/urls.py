@@ -6,6 +6,7 @@ app_name = 'catalogo'
 urlpatterns = [
     path('', views.lista_catalogo_view, name='lista'),
     path('importar/', views.importar_catalogo_view, name='importar'),
+    path('importar/plantilla/', views.descargar_plantilla_catalogo, name='descargar_plantilla'),
     path('agregar/', views.agregar_catalogo_view, name='agregar'),
     path('exportar/', views.exportar_catalogo_view, name='exportar'),
     path('<int:pk>/', views.detalle_catalogo_view, name='detalle'),

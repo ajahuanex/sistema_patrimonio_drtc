@@ -179,6 +179,21 @@ BASE_URL = os.environ.get('BASE_URL', 'https://localhost')
 # Backup Configuration
 BACKUP_RETENTION_DAYS = int(os.environ.get('BACKUP_RETENTION_DAYS', 30))
 
+# Recycle Bin Configuration
+PERMANENT_DELETE_CODE = os.environ.get('PERMANENT_DELETE_CODE')
+RECYCLE_BIN_RETENTION_DAYS = int(os.environ.get('RECYCLE_BIN_RETENTION_DAYS', 30))
+RECYCLE_BIN_AUTO_CLEANUP_ENABLED = os.environ.get('RECYCLE_BIN_AUTO_CLEANUP_ENABLED', 'True').lower() == 'true'
+RECYCLE_BIN_MAX_BULK_SIZE = int(os.environ.get('RECYCLE_BIN_MAX_BULK_SIZE', 100))
+RECYCLE_BIN_LOCKOUT_ATTEMPTS = int(os.environ.get('RECYCLE_BIN_LOCKOUT_ATTEMPTS', 3))
+RECYCLE_BIN_LOCKOUT_MINUTES = int(os.environ.get('RECYCLE_BIN_LOCKOUT_MINUTES', 30))
+
+# reCAPTCHA Configuration
+RECAPTCHA_PUBLIC_KEY = os.environ.get('RECAPTCHA_PUBLIC_KEY', '')
+RECAPTCHA_PRIVATE_KEY = os.environ.get('RECAPTCHA_PRIVATE_KEY', '')
+
+# Celery Beat Configuration
+CELERY_BEAT_ENABLED = os.environ.get('CELERY_BEAT_ENABLED', 'True').lower() == 'true'
+
 # Performance Settings
 CONN_MAX_AGE = 600
 DATABASE_CONN_MAX_AGE = 600

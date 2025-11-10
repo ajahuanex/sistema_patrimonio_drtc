@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminación Permanente - Sistema de Patrimonio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recycle_bin.css' %}">
+<style>
+    .warning-box {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .danger-box {
+        background-color: #f8d7da;
+        border: 2px solid #dc3545;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .lockout-warning {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    
+    .attempts-counter {
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #dc3545;
+    }
+    
+    .security-info {
+        background-color: #e7f3ff;
+        border-left: 4px solid #0066cc;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    Eliminación Permanente
+                </h2>
+                <a href="{% url 'core:recycle_bin_detail' entry.id %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <!-- Danger Warning -->
+            <div class="danger-box">
+                <h4 class="text-danger">
+                    <i class="fas fa-skull-crossbones"></i>
+                    ¡ADVERTENCIA! Esta acción es IRREVERSIBLE
+                </h4>
+                <p class="mb-0">
+                    Está a punto de eliminar <strong>permanentemente</strong> este elemento de la base de datos.
+                    Esta acción <strong>NO PUEDE DESHACERSE</strong> y los datos se perderán para siempre.
+                </p>
+            </div>
+
+            <!-- Lockout Warning (if applicable) -->
+            {% if show_warning and attempts_count > 0 %}
+            <div class="lockout-warning">
+                <h5>
+                    <i class="fas fa-shield-alt"></i>
+                    Advertencia de Seguridad
+                </h5>
+                <p class="mb-2">
+                    Ha realizado <span class="attempts-counter">{{ attempts_count }}</span> intento(s) fallido(s) recientemente.
+                </p>
+                <p class="mb-0">
+                    Le quedan <span class="attempts-counter">{{ remaining_attempts }}</span> intento(s) antes de que su cuenta sea bloqueada temporalmente por 30 minutos.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Object Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Información del Elemento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Tipo:</strong> {{ entry.get_module_display }}</p>
+                            <p><strong>Descripción:</strong> {{ entry.object_repr }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Eliminado por:</strong> {{ entry.deleted_by.get_full_name|default:entry.deleted_by.username }}</p>
+                            <p><strong>Fecha de eliminación:</strong> {{ entry.deleted_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    {% if entry.deletion_reason %}
+                    <div class="mt-3">
+                        <p><strong>Motivo de eliminación:</strong></p>
+                        <p class="text-muted">{{ entry.deletion_reason }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Security Information -->
+            <div class="security-info">
+                <h5>
+                    <i class="fas fa-lock"></i>
+                    Requisitos de Seguridad
+                </h5>
+                <ul class="mb-0">
+                    <li>Debe ingresar el código de seguridad correcto</li>
+                    <li>Debe escribir exactamente "ELIMINAR" para confirmar</li>
+                    <li>Debe proporcionar un motivo detallado (mínimo 20 caracteres)</li>
+                    <li>Después de 3 intentos fallidos, su cuenta será bloqueada por 30 minutos</li>
+                    <li>Todas las acciones quedan registradas en el log de auditoría</li>
+                </ul>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key"></i>
+                        Formulario de Eliminación Permanente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="permanentDeleteForm">
+                        {% csrf_token %}
+                        
+                        {{ form.entry_id }}
+                        
+                        <!-- Security Code -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.security_code.id_for_label }}" class="form-label">
+                                {{ form.security_code.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.security_code }}
+                            {% if form.security_code.help_text %}
+                            <small class="form-text text-muted">{{ form.security_code.help_text }}</small>
+                            {% endif %}
+                            {% if form.security_code.errors %}
+                            <div class="text-danger">
+                                {% for error in form.security_code.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Confirm Text -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.confirm_text.id_for_label }}" class="form-label">
+                                {{ form.confirm_text.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.confirm_text }}
+                            <small class="form-text text-muted">
+                                Escriba exactamente la palabra "ELIMINAR" en mayúsculas
+                            </small>
+                            {% if form.confirm_text.errors %}
+                            <div class="text-danger">
+                                {% for error in form.confirm_text.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.reason.id_for_label }}" class="form-label">
+                                {{ form.reason.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.reason }}
+                            <small class="form-text text-muted">
+                                Proporcione una explicación detallada de por qué es necesario eliminar permanentemente este elemento (mínimo 20 caracteres)
+                            </small>
+                            <div id="reasonCounter" class="text-muted small mt-1">
+                                0 / 20 caracteres mínimos
+                            </div>
+                            {% if form.reason.errors %}
+                            <div class="text-danger">
+                                {% for error in form.reason.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form Errors -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{% url 'core:recycle_bin_detail' entry.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger" id="submitBtn">
+                                <i class="fas fa-trash-alt"></i> Eliminar Permanentemente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Warning -->
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-info-circle"></i>
+                <strong>Nota:</strong> Esta acción quedará registrada en el log de auditoría del sistema con su nombre de usuario, dirección IP y fecha/hora exacta.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('permanentDeleteForm');
+    const securityCodeInput = document.getElementById('securityCode');
+    const confirmTextInput = document.getElementById('confirmText');
+    const reasonInput = document.getElementById('{{ form.reason.id_for_label }}');
+    const reasonCounter = document.getElementById('reasonCounter');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Character counter for reason
+    if (reasonInput && reasonCounter) {
+        reasonInput.addEventListener('input', function() {
+            const length = this.value.length;
+            reasonCounter.textContent = `${length} / 20 caracteres mínimos`;
+            
+            if (length >= 20) {
+                reasonCounter.classList.remove('text-danger');
+                reasonCounter.classList.add('text-success');
+            } else {
+                reasonCounter.classList.remove('text-success');
+                reasonCounter.classList.add('text-danger');
+            }
+        });
+    }
+    
+    // Real-time validation for confirm text
+    if (confirmTextInput) {
+        confirmTextInput.addEventListener('input', function() {
+            const value = this.value.trim().toUpperCase();
+            if (value === 'ELIMINAR') {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                if (value.length > 0) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+    }
+    
+    // Form submission confirmation
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const confirmText = confirmTextInput ? confirmTextInput.value.trim().toUpperCase() : '';
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+            
+            if (confirmText !== 'ELIMINAR') {
+                e.preventDefault();
+                alert('Debe escribir exactamente "ELIMINAR" para confirmar');
+                confirmTextInput.focus();
+                return false;
+            }
+            
+            if (reason.length < 20) {
+                e.preventDefault();
+                alert('El motivo debe tener al menos 20 caracteres');
+                reasonInput.focus();
+                return false;
+            }
+            
+            // Final confirmation
+            const confirmed = confirm(
+                '¿Está ABSOLUTAMENTE SEGURO de que desea eliminar permanentemente este elemento?\n\n' +
+                'Esta acción NO PUEDE DESHACERSE y los datos se perderán para siempre.\n\n' +
+                'Haga clic en "Aceptar" para continuar o "Cancelar" para abortar.'
+            );
+            
+            if (!confirmed) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+        });
+    }
+});
+</script>
+{% endblock %}

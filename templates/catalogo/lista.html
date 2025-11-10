@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load recycle_bin_quick_access %}
 
 {% block title %}Catálogo SBN - Sistema de Patrimonio{% endblock %}
 
@@ -210,6 +211,9 @@
 </div>
 
 <div class="container">
+    <!-- Quick Access to Recycle Bin -->
+    {% recycle_bin_quick_access 'catalogo' %}
+    
     <!-- Acciones principales -->
     <div class="catalog-actions">
         <div class="btn-group">

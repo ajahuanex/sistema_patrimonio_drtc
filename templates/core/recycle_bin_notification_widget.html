@@ -1,0 +1,59 @@
+{% load recycle_bin_quick_access %}
+
+{% if show_widget %}
+<div class="card border-warning mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle"></i>
+            Elementos Próximos a Eliminarse
+        </h5>
+    </div>
+    <div class="card-body">
+        <p class="card-text">
+            Los siguientes elementos en la papelera se eliminarán permanentemente pronto:
+        </p>
+        
+        <div class="list-group">
+            {% for item in near_delete_items %}
+            {% with days=item|days_until_delete %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ item.module_name|default:'file' }} me-2"></i>
+                        <div>
+                            <strong>{{ item.object_repr|truncatechars:50 }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ item.get_module_display }} - Eliminado {{ item.deleted_at|timesince }} atrás
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-{{ days|delete_urgency_class }} mb-2">
+                        {% if days == 0 %}
+                            ¡Hoy!
+                        {% elif days == 1 %}
+                            Mañana
+                        {% else %}
+                            {{ days }} días
+                        {% endif %}
+                    </span>
+                    <br>
+                    <a href="{% url 'core:recycle_bin_detail' item.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i> Ver
+                    </a>
+                </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        
+        <div class="mt-3 text-center">
+            <a href="{% url 'core:recycle_bin_list' %}?near_delete=true" class="btn btn-warning">
+                <i class="fas fa-trash-restore"></i> Ver Todos en Papelera
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}

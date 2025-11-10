@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
-from .models import UserProfile, AuditLog, RecycleBin, RecycleBinConfig
+from .models import UserProfile, AuditLog, RecycleBin, RecycleBinConfig, SecurityCodeAttempt
 
 
 class UserProfileInline(admin.StackedInline):
@@ -168,6 +168,46 @@ class RecycleBinConfigAdmin(admin.ModelAdmin):
         if not change or not obj.updated_by:
             obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(SecurityCodeAttempt)
+class SecurityCodeAttemptAdmin(admin.ModelAdmin):
+    list_display = ('user', 'attempted_at', 'success_display', 'ip_address', 
+                   'recycle_bin_entry_id')
+    list_filter = ('success', 'attempted_at')
+    search_fields = ('user__username', 'ip_address', 'user_agent')
+    readonly_fields = ('user', 'attempted_at', 'success', 'ip_address', 
+                      'user_agent', 'recycle_bin_entry_id')
+    date_hierarchy = 'attempted_at'
+    
+    def success_display(self, obj):
+        if obj.success:
+            return format_html('<span style="color: green; font-weight: bold;">✓ Exitoso</span>')
+        else:
+            return format_html('<span style="color: red; font-weight: bold;">✗ Fallido</span>')
+    success_display.short_description = 'Estado'
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        # Solo superusuarios pueden eliminar logs de intentos de seguridad
+        return request.user.is_superuser
+    
+    fieldsets = (
+        ('Información del Intento', {
+            'fields': ('user', 'attempted_at', 'success')
+        }),
+        ('Detalles de Conexión', {
+            'fields': ('ip_address', 'user_agent')
+        }),
+        ('Contexto', {
+            'fields': ('recycle_bin_entry_id',)
+        }),
+    )
 
 
 # Re-register UserAdmin

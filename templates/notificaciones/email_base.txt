@@ -1,46 +1,18 @@
-SISTEMA DE PATRIMONIO
 {{ notificacion.titulo }}
-
-Estimado/a {{ usuario.get_full_name|default:usuario.username }},
 
 {{ notificacion.mensaje }}
 
-{% if datos_contexto %}
-DETALLES ADICIONALES:
-{% if datos_contexto.cantidad_bienes %}
-- Cantidad de bienes: {{ datos_contexto.cantidad_bienes }}
-{% endif %}
-{% if datos_contexto.bien_codigo %}
-- Código Patrimonial: {{ datos_contexto.bien_codigo }}
-{% endif %}
-{% if datos_contexto.bien_denominacion %}
-- Denominación: {{ datos_contexto.bien_denominacion }}
-{% endif %}
-{% if datos_contexto.oficina_origen and datos_contexto.oficina_destino %}
-- Movimiento: De {{ datos_contexto.oficina_origen }} a {{ datos_contexto.oficina_destino }}
-{% endif %}
-{% if datos_contexto.motivo %}
-- Motivo: {{ datos_contexto.motivo }}
-{% endif %}
-{% if datos_contexto.fecha_movimiento %}
-- Fecha: {{ datos_contexto.fecha_movimiento|date:"d/m/Y H:i" }}
-{% endif %}
+{% if datos_contexto.items_by_module %}
+Resumen de elementos:
+{% for item in datos_contexto.items_by_module %}
+- {{ item.module_display }}: {{ item.count }} elemento(s) - {{ item.days_remaining }} día(s) restante(s)
+{% endfor %}
 {% endif %}
 
-{% if notificacion.url_accion %}
-Para ver más detalles, visite: {{ base_url }}{{ notificacion.url_accion }}
-{% endif %}
-
-INFORMACIÓN DE LA NOTIFICACIÓN:
-- Tipo: {{ notificacion.tipo_notificacion.nombre }}
-- Prioridad: {{ notificacion.get_prioridad_display }}
-- Fecha: {{ notificacion.created_at|date:"d/m/Y H:i" }}
-{% if notificacion.fecha_expiracion %}
-- Válida hasta: {{ notificacion.fecha_expiracion|date:"d/m/Y" }}
+{% if url_accion %}
+Para más información, visita: {{ base_url }}{{ url_accion }}
 {% endif %}
 
 ---
-Este es un mensaje automático del Sistema de Patrimonio
-Dirección Regional de Transportes y Comunicaciones - Puno
-
-Para cambiar sus preferencias de notificación, ingrese al sistema y vaya a Configuración > Notificaciones
+Este es un mensaje automático del Sistema de Gestión de Patrimonio.
+Por favor no respondas a este correo.

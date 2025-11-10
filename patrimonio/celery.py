@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.schedules import crontab
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'patrimonio.settings')
@@ -17,9 +18,5 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
-# Configuración de colas
-app.conf.task_routes = {
-    'apps.reportes.tasks.*': {'queue': 'reportes'},
-    'apps.core.tasks.importacion_masiva_excel': {'queue': 'importaciones'},
-    'apps.mobile.tasks.*': {'queue': 'mobile'},
-}
+# Nota: La configuración de task_routes y beat_schedule se encuentra en settings.py
+# y se carga automáticamente mediante app.config_from_object() arriba

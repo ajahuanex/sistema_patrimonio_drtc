@@ -180,17 +180,27 @@ class BienPatrimonial(BaseModel):
                 'codigo_patrimonial': 'El código patrimonial no puede estar vacío'
             })
         
-        # Validar que el catálogo esté activo
-        if self.catalogo and self.catalogo.estado != 'ACTIVO':
-            raise ValidationError({
-                'catalogo': 'No se puede asignar un bien con catálogo excluido'
-            })
+        # Validar que el catálogo esté activo y no eliminado
+        if self.catalogo:
+            if hasattr(self.catalogo, 'is_deleted') and self.catalogo.is_deleted:
+                raise ValidationError({
+                    'catalogo': 'No se puede asignar un bien a un catálogo eliminado'
+                })
+            if self.catalogo.estado != 'ACTIVO':
+                raise ValidationError({
+                    'catalogo': 'No se puede asignar un bien con catálogo excluido'
+                })
         
-        # Validar que la oficina esté activa
-        if self.oficina and not self.oficina.estado:
-            raise ValidationError({
-                'oficina': 'No se puede asignar un bien a una oficina inactiva'
-            })
+        # Validar que la oficina esté activa y no eliminada
+        if self.oficina:
+            if hasattr(self.oficina, 'is_deleted') and self.oficina.is_deleted:
+                raise ValidationError({
+                    'oficina': 'No se puede asignar un bien a una oficina eliminada'
+                })
+            if not self.oficina.estado:
+                raise ValidationError({
+                    'oficina': 'No se puede asignar un bien a una oficina inactiva'
+                })
         
         # Normalizar campos
         if self.codigo_patrimonial:
@@ -210,6 +220,87 @@ class BienPatrimonial(BaseModel):
         
         self.full_clean()
         super().save(*args, **kwargs)
+    
+    def delete(self, using=None, keep_parents=False, user=None, reason=''):
+        """
+        Sobrescribe el método delete para usar soft delete automáticamente.
+        Para eliminación permanente usar hard_delete()
+        
+        Args:
+            using: Base de datos a usar
+            keep_parents: Mantener padres (no usado en soft delete)
+            user: Usuario que realiza la eliminación
+            reason: Motivo de la eliminación
+        """
+        # Usar soft delete por defecto
+        return self.soft_delete(user=user, reason=reason)
+    
+    def puede_eliminarse(self):
+        """
+        Verifica si el bien puede ser eliminado (soft delete)
+        
+        Returns:
+            tuple: (puede_eliminarse: bool, mensaje: str)
+        """
+        # Verificar si ya está eliminado
+        if self.is_deleted:
+            return False, "El bien ya está eliminado"
+        
+        # Verificar si tiene movimientos pendientes
+        movimientos_pendientes = self.movimientobien_set.filter(
+            confirmado=False
+        ).exclude(deleted_at__isnull=False).count()
+        
+        if movimientos_pendientes > 0:
+            return False, f"El bien tiene {movimientos_pendientes} movimiento(s) pendiente(s) de confirmación"
+        
+        # El bien puede eliminarse
+        return True, "El bien puede ser eliminado"
+    
+    def soft_delete_cascade(self, user=None, reason=''):
+        """
+        Realiza soft delete en cascada del bien y sus relaciones dependientes
+        
+        Args:
+            user: Usuario que realiza la eliminación
+            reason: Motivo de la eliminación
+            
+        Returns:
+            dict: Diccionario con resultados de la eliminación
+        """
+        puede_eliminar, mensaje = self.puede_eliminarse()
+        if not puede_eliminar:
+            return {
+                'success': False,
+                'message': mensaje,
+                'deleted_items': []
+            }
+        
+        deleted_items = []
+        
+        # Eliminar movimientos relacionados
+        movimientos = self.movimientobien_set.all()
+        for movimiento in movimientos:
+            if hasattr(movimiento, 'soft_delete'):
+                movimiento.soft_delete(user=user, reason=f"Cascada: {reason}")
+                deleted_items.append(f"Movimiento: {movimiento}")
+        
+        # Eliminar historial de estados
+        historiales = self.historialestado_set.all()
+        for historial in historiales:
+            if hasattr(historial, 'soft_delete'):
+                historial.soft_delete(user=user, reason=f"Cascada: {reason}")
+                deleted_items.append(f"Historial: {historial}")
+        
+        # Finalmente eliminar el bien
+        self.soft_delete(user=user, reason=reason)
+        deleted_items.append(f"Bien: {self.codigo_patrimonial}")
+        
+        return {
+            'success': True,
+            'message': 'Bien y relaciones eliminados correctamente',
+            'deleted_items': deleted_items
+        }
     
     @property
     def estado_bien_texto(self):
@@ -287,32 +378,80 @@ class BienPatrimonial(BaseModel):
         ).exclude(serie='')
     
     @classmethod
-    def obtener_por_oficina(cls, oficina):
-        """Obtiene bienes de una oficina específica"""
-        return cls.objects.filter(oficina=oficina).order_by('codigo_patrimonial')
+    def obtener_por_oficina(cls, oficina, include_deleted=False):
+        """
+        Obtiene bienes de una oficina específica
+        
+        Args:
+            oficina: Oficina a filtrar
+            include_deleted: Si True, incluye bienes eliminados
+            
+        Returns:
+            QuerySet: Bienes de la oficina
+        """
+        queryset = cls.all_objects if include_deleted else cls.objects
+        return queryset.filter(oficina=oficina).order_by('codigo_patrimonial')
     
     @classmethod
-    def obtener_por_estado(cls, estado):
-        """Obtiene bienes por estado"""
-        return cls.objects.filter(estado_bien=estado).order_by('codigo_patrimonial')
+    def obtener_por_estado(cls, estado, include_deleted=False):
+        """
+        Obtiene bienes por estado
+        
+        Args:
+            estado: Estado del bien
+            include_deleted: Si True, incluye bienes eliminados
+            
+        Returns:
+            QuerySet: Bienes con el estado especificado
+        """
+        queryset = cls.all_objects if include_deleted else cls.objects
+        return queryset.filter(estado_bien=estado).order_by('codigo_patrimonial')
     
     @classmethod
-    def estadisticas_por_estado(cls):
-        """Obtiene estadísticas por estado"""
+    def estadisticas_por_estado(cls, include_deleted=False):
+        """
+        Obtiene estadísticas por estado
+        
+        Args:
+            include_deleted: Si True, incluye bienes eliminados
+            
+        Returns:
+            QuerySet: Estadísticas agrupadas por estado
+        """
         from django.db.models import Count
-        return cls.objects.values('estado_bien').annotate(
+        queryset = cls.all_objects if include_deleted else cls.objects
+        return queryset.values('estado_bien').annotate(
             total=Count('id')
         ).order_by('estado_bien')
     
     @classmethod
-    def estadisticas_por_oficina(cls):
-        """Obtiene estadísticas por oficina"""
+    def estadisticas_por_oficina(cls, include_deleted=False):
+        """
+        Obtiene estadísticas por oficina
+        
+        Args:
+            include_deleted: Si True, incluye bienes eliminados
+            
+        Returns:
+            QuerySet: Estadísticas agrupadas por oficina
+        """
         from django.db.models import Count
-        return cls.objects.values(
+        queryset = cls.all_objects if include_deleted else cls.objects
+        return queryset.values(
             'oficina__nombre'
         ).annotate(
             total=Count('id')
         ).order_by('oficina__nombre')
+    
+    @classmethod
+    def obtener_eliminados(cls):
+        """
+        Obtiene solo los bienes eliminados
+        
+        Returns:
+            QuerySet: Bienes eliminados
+        """
+        return cls.objects.deleted_only().order_by('-deleted_at')
 
 
 class MovimientoBien(BaseModel):
@@ -372,11 +511,36 @@ class MovimientoBien(BaseModel):
         base_str = f"{self.bien.codigo_patrimonial}: {self.oficina_origen} → {self.oficina_destino}"
         return self.get_str_with_delete_status(base_str)
     
+    def clean(self):
+        """Validaciones personalizadas"""
+        super().clean()
+        
+        # Validar que el bien no esté eliminado
+        if self.bien and hasattr(self.bien, 'is_deleted') and self.bien.is_deleted:
+            raise ValidationError({
+                'bien': 'No se puede crear un movimiento para un bien eliminado'
+            })
+        
+        # Validar que las oficinas no estén eliminadas
+        if self.oficina_origen and hasattr(self.oficina_origen, 'is_deleted') and self.oficina_origen.is_deleted:
+            raise ValidationError({
+                'oficina_origen': 'No se puede crear un movimiento desde una oficina eliminada'
+            })
+        
+        if self.oficina_destino and hasattr(self.oficina_destino, 'is_deleted') and self.oficina_destino.is_deleted:
+            raise ValidationError({
+                'oficina_destino': 'No se puede crear un movimiento hacia una oficina eliminada'
+            })
+    
     def confirmar_movimiento(self):
         """Confirma el movimiento y actualiza la oficina del bien"""
         from django.utils import timezone
         
         if not self.confirmado:
+            # Validar que el bien no esté eliminado
+            if self.bien.is_deleted:
+                raise ValidationError('No se puede confirmar un movimiento de un bien eliminado')
+            
             self.confirmado = True
             self.fecha_confirmacion = timezone.now()
             self.save()
@@ -434,3 +598,13 @@ class HistorialEstado(BaseModel):
     def __str__(self):
         base_str = f"{self.bien.codigo_patrimonial}: {self.get_estado_anterior_display()} → {self.get_estado_nuevo_display()}"
         return self.get_str_with_delete_status(base_str)
+    
+    def clean(self):
+        """Validaciones personalizadas"""
+        super().clean()
+        
+        # Validar que el bien no esté eliminado
+        if self.bien and hasattr(self.bien, 'is_deleted') and self.bien.is_deleted:
+            raise ValidationError({
+                'bien': 'No se puede crear un historial de estado para un bien eliminado'
+            })

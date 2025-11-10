@@ -20,6 +20,8 @@ class TipoNotificacion(models.Model):
         ('SISTEMA', 'Sistema'),
         ('INVENTARIO', 'Inventario'),
         ('ALERTA', 'Alerta General'),
+        ('RECYCLE_WARNING', 'Advertencia de Papelera'),
+        ('RECYCLE_FINAL_WARNING', 'Advertencia Final de Papelera'),
     ]
     
     codigo = models.CharField(max_length=20, unique=True)
