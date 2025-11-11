@@ -109,7 +109,31 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'es-pe'
 TIME_ZONE = 'America/Lima'
 USE_I18N = True
+USE_L10N = False  # Desactivar localización automática para usar formatos personalizados
 USE_TZ = True
+
+# Formatos de fecha y hora personalizados (DD-MM-YYYY)
+DATE_FORMAT = 'd/m/Y'  # Formato para mostrar fechas: 25/12/2024
+SHORT_DATE_FORMAT = 'd/m/Y'
+DATE_INPUT_FORMATS = [
+    '%d/%m/%Y',  # 25/12/2024
+    '%d-%m-%Y',  # 25-12-2024
+    '%d/%m/%y',  # 25/12/24
+    '%Y-%m-%d',  # 2024-12-25 (ISO format)
+]
+
+DATETIME_FORMAT = 'd/m/Y H:i'  # Formato para fecha y hora: 25/12/2024 14:30
+SHORT_DATETIME_FORMAT = 'd/m/Y H:i'
+DATETIME_INPUT_FORMATS = [
+    '%d/%m/%Y %H:%M:%S',  # 25/12/2024 14:30:00
+    '%d/%m/%Y %H:%M',     # 25/12/2024 14:30
+    '%d-%m-%Y %H:%M:%S',  # 25-12-2024 14:30:00
+    '%d-%m-%Y %H:%M',     # 25-12-2024 14:30
+    '%Y-%m-%d %H:%M:%S',  # 2024-12-25 14:30:00 (ISO format)
+    '%Y-%m-%d %H:%M',     # 2024-12-25 14:30
+]
+
+TIME_FORMAT = 'H:i'  # Formato de hora: 14:30
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'

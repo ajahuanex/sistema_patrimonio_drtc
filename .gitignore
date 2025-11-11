@@ -105,7 +105,6 @@ dmypy.json
 
 # Django
 media/
-static/
 staticfiles/
 
 # Frontend
@@ -122,7 +121,42 @@ static/frontend/
 .idea/
 *.swp
 *.swo
+.kiro/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Database
+*.sql
+*.dump
+backup_*.sql
+
+# Secrets
+.env.local
+.env.production
+secrets/
+
+# QR Codes generados
+media/qr_codes/
+
+# Archivos temporales
+*.tmp
+*.bak
+~*
+
+# Logs
+logs/
+*.log.*
+
+# Documentación temporal (opcional - descomenta si no quieres subirla)
+# ESTADISTICAS_*.md
+# GUIA_*.md
+# RESUMEN_*.md
+# CHECKLIST_*.md
+# COMANDOS_RAPIDOS.md
+# INDICE_*.md
+# PASOS_*.md
+# QUE_*.md
+# SOLUCION_*.md
+# verificar_estadisticas.py

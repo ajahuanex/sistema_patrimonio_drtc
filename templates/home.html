@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load recycle_bin_quick_access %}
+{% load math_filters %}
 
 {% block title %}Inicio{% endblock %}
 
@@ -21,66 +22,66 @@
         </div>
     </div>
 
-    <!-- Estadísticas Rápidas -->
+    <!-- Estadísticas Principales -->
     <div class="row mb-4">
-        <div class="col-lg-3 col-md-6">
-            <div class="card bg-info text-white">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">Total Bienes</h4>
-                            <h2 class="mb-0">0</h2>
+                            <h4 class="mb-0">{{ total_bienes|default:"0" }}</h4>
+                            <p class="mb-0">Total Bienes</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-box fa-3x"></i>
+                            <i class="fas fa-boxes fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 mb-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">Oficinas</h4>
-                            <h2 class="mb-0">0</h2>
+                            <h4 class="mb-0">{{ bienes_buenos|default:"0" }}</h4>
+                            <p class="mb-0">En Buen Estado</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-building fa-3x"></i>
+                            <i class="fas fa-check-circle fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 mb-3">
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">Catálogo</h4>
-                            <h2 class="mb-0">0</h2>
+                            <h4 class="mb-0">{{ total_oficinas|default:"0" }}</h4>
+                            <p class="mb-0">Oficinas</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-book fa-3x"></i>
+                            <i class="fas fa-building fa-2x"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-lg-3 col-md-6">
-            <div class="card bg-danger text-white">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">QR Generados</h4>
-                            <h2 class="mb-0">0</h2>
+                            <h4 class="mb-0">{{ bienes_este_mes|default:"0" }}</h4>
+                            <p class="mb-0">Este Mes</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-qrcode fa-3x"></i>
+                            <i class="fas fa-calendar-plus fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -100,7 +101,7 @@
                     <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
                     <h5 class="card-title">Registrar Bien</h5>
                     <p class="card-text">Registra un nuevo bien patrimonial en el sistema</p>
-                    <a href="#" class="btn btn-primary">
+                    <a href="{% url 'bienes:create' %}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Registrar
                     </a>
                 </div>
@@ -113,7 +114,7 @@
                     <i class="fas fa-upload fa-3x text-success mb-3"></i>
                     <h5 class="card-title">Importar Excel</h5>
                     <p class="card-text">Importa bienes patrimoniales desde archivo Excel</p>
-                    <a href="#" class="btn btn-success">
+                    <a href="{% url 'bienes:importar' %}" class="btn btn-success">
                         <i class="fas fa-upload"></i> Importar
                     </a>
                 </div>
@@ -126,7 +127,7 @@
                     <i class="fas fa-search fa-3x text-info mb-3"></i>
                     <h5 class="card-title">Buscar Bienes</h5>
                     <p class="card-text">Busca bienes por código, placa, serie u otros criterios</p>
-                    <a href="#" class="btn btn-info">
+                    <a href="{% url 'bienes:list' %}" class="btn btn-info">
                         <i class="fas fa-search"></i> Buscar
                     </a>
                 </div>
@@ -139,7 +140,7 @@
                     <i class="fas fa-qrcode fa-3x text-warning mb-3"></i>
                     <h5 class="card-title">Generar QR</h5>
                     <p class="card-text">Genera códigos QR para impresión en etiquetas</p>
-                    <a href="#" class="btn btn-warning">
+                    <a href="{% url 'reportes:menu_impresion_qr' %}" class="btn btn-warning">
                         <i class="fas fa-qrcode"></i> Generar
                     </a>
                 </div>
@@ -152,7 +153,7 @@
                     <i class="fas fa-chart-bar fa-3x text-secondary mb-3"></i>
                     <h5 class="card-title">Reportes</h5>
                     <p class="card-text">Genera reportes avanzados con filtros personalizados</p>
-                    <a href="#" class="btn btn-secondary">
+                    <a href="{% url 'reportes:dashboard_reportes' %}" class="btn btn-secondary">
                         <i class="fas fa-chart-bar"></i> Reportes
                     </a>
                 </div>
@@ -172,6 +173,108 @@
             </div>
         </div>
     </div>
+
+    <!-- Estadísticas Adicionales -->
+    <div class="row mb-4 mt-5">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie"></i> Distribución por Estado de Bienes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for estado in distribucion_estados %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div style="width: 20px; height: 20px; background-color: {{ estado.color }}; border-radius: 3px;"></div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ estado.estado }}</span>
+                                        <strong>{{ estado.cantidad }}</strong>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar" 
+                                             style="width: {{ estado.cantidad|percentage:total_bienes }}%; background-color: {{ estado.color }};">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Información del Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-list"></i> Catálogo SBN:</span>
+                            <strong>{{ total_catalogo|default:"0" }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-users"></i> Usuarios Activos:</span>
+                            <strong>{{ total_usuarios|default:"0" }}</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-trash"></i> En Papelera:</span>
+                            <strong>{{ items_papelera|default:"0" }}</strong>
+                        </div>
+                    </div>
+                    {% if valor_total > 0 %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-dollar-sign"></i> Valor Total:</span>
+                            <strong>{{ valor_total|format_currency }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Oficinas -->
+    {% if top_oficinas %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-trophy"></i> Top 5 Oficinas con Más Bienes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for oficina in top_oficinas %}
+                        <div class="col-md-2 mb-3">
+                            <div class="text-center">
+                                <div class="badge bg-primary fs-6 mb-2">{{ oficina.total }}</div>
+                                <div class="small">{{ oficina.oficina__nombre|default:"Sin Oficina" }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Funcionalidades Destacadas -->
     <div class="row mt-5">
