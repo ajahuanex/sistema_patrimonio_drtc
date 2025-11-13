@@ -28,8 +28,10 @@ services:
       - redis_data:/data
     networks:
       - patrimonio_network
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a $$REDIS_PASSWORD ping || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
