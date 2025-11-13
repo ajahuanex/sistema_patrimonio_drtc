@@ -36,7 +36,7 @@ RUN useradd --create-home --shell /bin/bash app \
 USER app
 
 # Collect static files
-RUN python manage.py collectstatic --noinput --settings=patrimonio.settings
+RUN python manage.py collectstatic --noinput --settings=patrimonio.settings.production
 
 # Expose port
 EXPOSE 8000
