@@ -2,38 +2,63 @@
 
 ## Requisitos Previos
 - Servidor Ubuntu con Docker y Docker Compose instalados
-- Acceso SSH al servidor
+- Acceso directo al servidor (consola o VNC, no SSH)
 - IP: 161.132.47.92
 
 ---
 
-## PASO 1: Conectarse al Servidor
+## OPCIÓN 1: Despliegue Automatizado (Recomendado)
 
-```bash
-ssh usuario@161.132.47.92
-```
-
----
-
-## PASO 2: Clonar el Repositorio
+### PASO 1: Clonar el Repositorio
 
 ```bash
 # Ir al directorio /opt
 cd /opt
 
 # Clonar el repositorio
-sudo git clone https://github.com/ajahuanex/sistema_patrimonio_drtc.git
+git clone https://github.com/ajahuanex/sistema_patrimonio_drtc.git
 
 # Entrar al directorio
 cd sistema_patrimonio_drtc
-
-# Dar permisos al usuario actual
-sudo chown -R $USER:$USER /opt/sistema_patrimonio_drtc
 ```
+
+### PASO 2: Ejecutar Script de Despliegue Automatizado
+
+```bash
+# Dar permisos de ejecución
+chmod +x scripts/deploy-ip-161.sh
+
+# Ejecutar el script
+./scripts/deploy-ip-161.sh
+```
+
+El script hará TODO automáticamente:
+- ✓ Verificar requisitos (Docker, Docker Compose, Git)
+- ✓ Generar archivo .env.prod con credenciales seguras
+- ✓ Configurar Nginx para HTTP
+- ✓ Crear directorios necesarios
+- ✓ Construir imágenes Docker
+- ✓ Iniciar servicios
+- ✓ Ejecutar migraciones
+- ✓ Crear superusuario (te pedirá los datos)
+- ✓ Recolectar archivos estáticos
+- ✓ Verificar health checks
+
+**Verás todo el proceso en pantalla con colores y mensajes claros.**
 
 ---
 
-## PASO 3: Generar Archivo .env.prod Automáticamente
+## OPCIÓN 2: Despliegue Manual Paso a Paso
+
+### PASO 1: Clonar el Repositorio
+
+```bash
+cd /opt
+git clone https://github.com/ajahuanex/sistema_patrimonio_drtc.git
+cd sistema_patrimonio_drtc
+```
+
+### PASO 2: Generar Archivo .env.prod
 
 ### Opción A: Usar el Script Generador (Recomendado)
 
@@ -140,52 +165,52 @@ chmod -R 755 logs backups nginx/logs
 
 ---
 
-## PASO 7: Construir las Imágenes Docker
+### PASO 3: Construir las Imágenes Docker
 
 ```bash
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 ```
 
 Este proceso puede tardar 5-10 minutos.
 
 ---
 
-## PASO 8: Iniciar los Servicios
+### PASO 4: Iniciar los Servicios
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---
 
-## PASO 9: Verificar Estado de los Servicios
+### PASO 5: Verificar Estado de los Servicios
 
 ```bash
 # Ver estado de todos los servicios
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 ```
 
 Espera 1-2 minutos hasta que todos los servicios muestren estado `healthy`.
 
 Si algún servicio está `unhealthy`, revisa los logs:
 ```bash
-docker-compose -f docker-compose.prod.yml logs [nombre-servicio]
+docker compose -f docker-compose.prod.yml logs [nombre-servicio]
 ```
 
 ---
 
-## PASO 10: Ejecutar Migraciones de Base de Datos
+### PASO 6: Ejecutar Migraciones de Base de Datos
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 ```
 
 ---
 
-## PASO 11: Crear Superusuario
+### PASO 7: Crear Superusuario
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
 ```
 
 Te pedirá:
@@ -195,15 +220,15 @@ Te pedirá:
 
 ---
 
-## PASO 12: Recolectar Archivos Estáticos
+### PASO 8: Recolectar Archivos Estáticos
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
 ```
 
 ---
 
-## PASO 13: Verificar Health Checks
+### PASO 9: Verificar Health Checks
 
 ```bash
 # Health check básico
@@ -220,7 +245,7 @@ Deberías ver respuestas JSON con `"status": "healthy"`.
 
 ---
 
-## PASO 14: Acceder a la Aplicación
+## Acceder a la Aplicación
 
 Abre tu navegador y accede a:
 
@@ -228,7 +253,7 @@ Abre tu navegador y accede a:
 - **Panel de administración**: http://161.132.47.92/admin/
 - **Health check**: http://161.132.47.92/health/detailed/
 
-Inicia sesión con el superusuario que creaste en el Paso 11.
+Inicia sesión con el superusuario que creaste.
 
 ---
 
@@ -237,51 +262,53 @@ Inicia sesión con el superusuario que creaste en el Paso 11.
 ### Ver Logs
 ```bash
 # Todos los servicios
-docker-compose -f docker-compose.prod.yml logs
+docker compose -f docker-compose.prod.yml logs
 
 # Servicio específico
-docker-compose -f docker-compose.prod.yml logs web
-docker-compose -f docker-compose.prod.yml logs db
-docker-compose -f docker-compose.prod.yml logs redis
-docker-compose -f docker-compose.prod.yml logs celery
+docker compose -f docker-compose.prod.yml logs web
+docker compose -f docker-compose.prod.yml logs db
+docker compose -f docker-compose.prod.yml logs redis
+docker compose -f docker-compose.prod.yml logs celery
 
 # Logs en tiempo real
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
 ### Reiniciar Servicios
 ```bash
 # Reiniciar todos los servicios
-docker-compose -f docker-compose.prod.yml restart
+docker compose -f docker-compose.prod.yml restart
 
 # Reiniciar servicio específico
-docker-compose -f docker-compose.prod.yml restart web
+docker compose -f docker-compose.prod.yml restart web
 ```
 
 ### Detener Servicios
 ```bash
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 ```
 
 ### Actualizar desde GitHub
 ```bash
 cd /opt/sistema_patrimonio_drtc
 git pull origin main
-docker-compose -f docker-compose.prod.yml build
-docker-compose -f docker-compose.prod.yml up -d
-docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
-docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
+docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
 ```
 
 ### Backup Manual de Base de Datos
 ```bash
-docker-compose -f docker-compose.prod.yml exec -T db pg_dump -U patrimonio_user patrimonio_prod > backups/backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose -f docker-compose.prod.yml exec -T db pg_dump -U patrimonio_user patrimonio_prod > backups/backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ### Restaurar Backup
 ```bash
-docker-compose -f docker-compose.prod.yml exec -T db psql -U patrimonio_user patrimonio_prod < backups/backup_YYYYMMDD_HHMMSS.sql
+docker compose -f docker-compose.prod.yml exec -T db psql -U patrimonio_user patrimonio_prod < backups/backup_YYYYMMDD_HHMMSS.sql
 ```
+
+---
 
 ---
 
@@ -291,12 +318,12 @@ docker-compose -f docker-compose.prod.yml exec -T db psql -U patrimonio_user pat
 
 1. Ver logs del servicio:
 ```bash
-docker-compose -f docker-compose.prod.yml logs [servicio]
+docker compose -f docker-compose.prod.yml logs [servicio]
 ```
 
 2. Reiniciar el servicio:
 ```bash
-docker-compose -f docker-compose.prod.yml restart [servicio]
+docker compose -f docker-compose.prod.yml restart [servicio]
 ```
 
 ### No puedo acceder desde el navegador
@@ -309,14 +336,14 @@ sudo ufw allow 80/tcp
 
 2. Verificar que nginx esté corriendo:
 ```bash
-docker-compose -f docker-compose.prod.yml ps nginx
+docker compose -f docker-compose.prod.yml ps nginx
 ```
 
 ### Error de conexión a base de datos
 
 1. Verificar que PostgreSQL esté healthy:
 ```bash
-docker-compose -f docker-compose.prod.yml ps db
+docker compose -f docker-compose.prod.yml ps db
 ```
 
 2. Verificar credenciales en .env.prod
@@ -325,7 +352,7 @@ docker-compose -f docker-compose.prod.yml ps db
 
 1. Verificar que Redis esté healthy:
 ```bash
-docker-compose -f docker-compose.prod.yml ps redis
+docker compose -f docker-compose.prod.yml ps redis
 ```
 
 2. Verificar password de Redis en .env.prod
@@ -339,7 +366,7 @@ docker-compose -f docker-compose.prod.yml ps redis
 crontab -e
 
 # Agregar esta línea para backup diario a las 2 AM
-0 2 * * * cd /opt/sistema_patrimonio_drtc && docker-compose -f docker-compose.prod.yml exec -T db pg_dump -U patrimonio_user patrimonio_prod > backups/backup_$(date +\%Y\%m\%d_\%H\%M\%S).sql
+0 2 * * * cd /opt/sistema_patrimonio_drtc && docker compose -f docker-compose.prod.yml exec -T db pg_dump -U patrimonio_user patrimonio_prod > backups/backup_$(date +\%Y\%m\%d_\%H\%M\%S).sql
 
 # Agregar esta línea para limpiar backups antiguos (más de 30 días)
 0 3 * * * find /opt/sistema_patrimonio_drtc/backups -name "*.sql" -mtime +30 -delete
