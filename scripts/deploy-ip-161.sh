@@ -106,20 +106,12 @@ if [ -f ".env.prod" ]; then
         REDIS_PASSWORD=$(openssl rand -base64 24 | tr -d "=+/" | cut -c1-24)
         PERMANENT_DELETE_CODE=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
         
-        # Solicitar información
-        read -p "Email para notificaciones: " EMAIL_USER
-        read -sp "Contraseña de aplicación de Gmail: " EMAIL_PASSWORD
-        echo
-        
         # Crear archivo
         cp .env.prod.ip-only .env.prod
         sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|g" .env.prod
         sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|g" .env.prod
         sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$REDIS_PASSWORD|g" .env.prod
         sed -i "s|PERMANENT_DELETE_CODE=.*|PERMANENT_DELETE_CODE=$PERMANENT_DELETE_CODE|g" .env.prod
-        sed -i "s|EMAIL_HOST_USER=.*|EMAIL_HOST_USER=$EMAIL_USER|g" .env.prod
-        sed -i "s|EMAIL_HOST_PASSWORD=.*|EMAIL_HOST_PASSWORD=$EMAIL_PASSWORD|g" .env.prod
-        sed -i "s|DEFAULT_FROM_EMAIL=.*|DEFAULT_FROM_EMAIL=Sistema Patrimonio DRTC <$EMAIL_USER>|g" .env.prod
         
         print_success "Archivo .env.prod generado"
         
@@ -141,20 +133,12 @@ else
     REDIS_PASSWORD=$(openssl rand -base64 24 | tr -d "=+/" | cut -c1-24)
     PERMANENT_DELETE_CODE=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
     
-    # Solicitar información
-    read -p "Email para notificaciones: " EMAIL_USER
-    read -sp "Contraseña de aplicación de Gmail: " EMAIL_PASSWORD
-    echo
-    
     # Crear archivo
     cp .env.prod.ip-only .env.prod
     sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|g" .env.prod
     sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|g" .env.prod
     sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$REDIS_PASSWORD|g" .env.prod
     sed -i "s|PERMANENT_DELETE_CODE=.*|PERMANENT_DELETE_CODE=$PERMANENT_DELETE_CODE|g" .env.prod
-    sed -i "s|EMAIL_HOST_USER=.*|EMAIL_HOST_USER=$EMAIL_USER|g" .env.prod
-    sed -i "s|EMAIL_HOST_PASSWORD=.*|EMAIL_HOST_PASSWORD=$EMAIL_PASSWORD|g" .env.prod
-    sed -i "s|DEFAULT_FROM_EMAIL=.*|DEFAULT_FROM_EMAIL=Sistema Patrimonio DRTC <$EMAIL_USER>|g" .env.prod
     
     print_success "Archivo .env.prod generado"
     
