@@ -1,73 +1,139 @@
 @echo off
-REM Backup Script for Sistema de Registro de Patrimonio (Windows)
-REM This script creates backups of database and media files
+REM ################################################################################
+REM Sistema de Backups Automáticos - Sistema de Registro de Patrimonio DRTC Puno
+REM 
+REM Este script realiza backups automáticos de:
+REM - Base de datos PostgreSQL (pg_dump con compresión gzip)
+REM - Archivos media (tar.gz)
+REM - Limpieza automática de backups antiguos (>7 días)
+REM ################################################################################
 
 setlocal enabledelayedexpansion
 
-REM Configuration
-set BACKUP_DIR=.\backups
-set RETENTION_DAYS=30
+REM Configuración
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+set BACKUP_DIR=%PROJECT_ROOT%\backups
+set DB_BACKUP_DIR=%BACKUP_DIR%\db
+set MEDIA_BACKUP_DIR=%BACKUP_DIR%\media
+set LOG_DIR=%PROJECT_ROOT%\logs
+set BACKUP_LOG=%LOG_DIR%\backup.log
+set RETENTION_DAYS=7
 
-REM Get current date and time
-for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
-set "YY=%dt:~2,2%" & set "YYYY=%dt:~0,4%" & set "MM=%dt:~4,2%" & set "DD=%dt:~6,2%"
-set "HH=%dt:~8,2%" & set "Min=%dt:~10,2%" & set "Sec=%dt:~12,2%"
-set "DATE=%YYYY%%MM%%DD%_%HH%%Min%%Sec%"
+REM Obtener timestamp
+for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set datetime=%%I
+set TIMESTAMP=%datetime:~0,8%_%datetime:~8,6%
 
-echo Starting backup process...
+echo ==========================================
+echo Iniciando proceso de backup - %TIMESTAMP%
+echo ==========================================
 
-REM Create backup directory
-if not exist %BACKUP_DIR% mkdir %BACKUP_DIR%
+REM Crear estructura de directorios
+if not exist "%DB_BACKUP_DIR%" mkdir "%DB_BACKUP_DIR%"
+if not exist "%MEDIA_BACKUP_DIR%" mkdir "%MEDIA_BACKUP_DIR%"
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-REM Load environment variables from .env.prod
-if exist .env.prod (
-    for /f "usebackq tokens=1,2 delims==" %%a in (".env.prod") do (
-        if not "%%a"=="" if not "%%a:~0,1%"=="#" (
-            set "%%a=%%b"
-        )
+echo [INFO] Directorios de backup creados >> "%BACKUP_LOG%"
+
+REM Cargar variables de entorno
+if not exist "%PROJECT_ROOT%\.env.prod" (
+    echo [ERROR] Archivo .env.prod no encontrado
+    echo [ERROR] Archivo .env.prod no encontrado >> "%BACKUP_LOG%"
+    exit /b 1
+)
+
+REM Verificar Docker
+docker info >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Docker no está corriendo
+    echo [ERROR] Docker no está corriendo >> "%BACKUP_LOG%"
+    exit /b 1
+)
+
+echo [INFO] Docker verificado correctamente
+echo [INFO] Docker verificado correctamente >> "%BACKUP_LOG%"
+
+REM Backup de base de datos
+echo [INFO] Iniciando backup de base de datos...
+echo [INFO] Iniciando backup de base de datos... >> "%BACKUP_LOG%"
+
+set DB_BACKUP_FILE=%DB_BACKUP_DIR%\patrimonio_%TIMESTAMP%.sql
+
+docker-compose -f "%PROJECT_ROOT%\docker-compose.prod.yml" exec -T db pg_dump -U postgres patrimonio > "%DB_BACKUP_FILE%"
+
+if errorlevel 1 (
+    echo [ERROR] Error al realizar dump de base de datos
+    echo [ERROR] Error al realizar dump de base de datos >> "%BACKUP_LOG%"
+    set BACKUP_FAILED=1
+) else (
+    echo [INFO] Dump de base de datos completado
+    echo [INFO] Dump de base de datos completado >> "%BACKUP_LOG%"
+    
+    REM Comprimir con gzip (usando docker)
+    docker run --rm -v "%DB_BACKUP_DIR%:/backup" alpine gzip "/backup/patrimonio_%TIMESTAMP%.sql"
+    
+    if errorlevel 1 (
+        echo [ERROR] Error al comprimir backup
+        echo [ERROR] Error al comprimir backup >> "%BACKUP_LOG%"
+        set BACKUP_FAILED=1
+    ) else (
+        echo [INFO] Backup comprimido exitosamente
+        echo [INFO] Backup comprimido exitosamente >> "%BACKUP_LOG%"
     )
 )
 
-REM Database backup
-echo Creating database backup...
-docker-compose -f docker-compose.prod.yml exec -T db pg_dump -U %POSTGRES_USER% -d %POSTGRES_DB% --no-owner --no-privileges --clean --if-exists > %BACKUP_DIR%\db_backup_%DATE%.sql
+REM Backup de archivos media
+echo [INFO] Iniciando backup de archivos media...
+echo [INFO] Iniciando backup de archivos media... >> "%BACKUP_LOG%"
 
-REM Compress database backup using PowerShell
-echo Compressing database backup...
-powershell -Command "Compress-Archive -Path '%BACKUP_DIR%\db_backup_%DATE%.sql' -DestinationPath '%BACKUP_DIR%\db_backup_%DATE%.zip'"
-del %BACKUP_DIR%\db_backup_%DATE%.sql
+if exist "%PROJECT_ROOT%\media" (
+    set MEDIA_BACKUP_FILE=%MEDIA_BACKUP_DIR%\media_%TIMESTAMP%.tar.gz
+    
+    REM Usar docker para crear tar.gz
+    docker run --rm -v "%PROJECT_ROOT%:/backup" alpine tar -czf "/backup/backups/media/media_%TIMESTAMP%.tar.gz" -C /backup media/
+    
+    if errorlevel 1 (
+        echo [ERROR] Error al crear backup de media
+        echo [ERROR] Error al crear backup de media >> "%BACKUP_LOG%"
+        set BACKUP_FAILED=1
+    ) else (
+        echo [INFO] Backup de media completado
+        echo [INFO] Backup de media completado >> "%BACKUP_LOG%"
+    )
+) else (
+    echo [WARN] Directorio media no encontrado
+    echo [WARN] Directorio media no encontrado >> "%BACKUP_LOG%"
+)
 
-REM Media files backup
-echo Creating media files backup...
-docker run --rm -v patrimonio_media_files:/data -v %cd%\%BACKUP_DIR%:/backup alpine tar czf /backup/media_backup_%DATE%.tar.gz -C /data .
+REM Limpiar backups antiguos (más de 7 días)
+echo [INFO] Limpiando backups antiguos...
+echo [INFO] Limpiando backups antiguos... >> "%BACKUP_LOG%"
 
-REM Static files backup
-echo Creating static files backup...
-docker run --rm -v patrimonio_static_files:/data -v %cd%\%BACKUP_DIR%:/backup alpine tar czf /backup/static_backup_%DATE%.tar.gz -C /data .
+forfiles /P "%DB_BACKUP_DIR%" /M *.sql.gz /D -%RETENTION_DAYS% /C "cmd /c del @path" 2>nul
+forfiles /P "%MEDIA_BACKUP_DIR%" /M *.tar.gz /D -%RETENTION_DAYS% /C "cmd /c del @path" 2>nul
 
-REM Configuration backup
-echo Creating configuration backup...
-powershell -Command "Compress-Archive -Path 'docker-compose.prod.yml','nginx\','scripts\','.env.prod' -DestinationPath '%BACKUP_DIR%\config_backup_%DATE%.zip'"
+echo [INFO] Limpieza de backups antiguos completada
+echo [INFO] Limpieza de backups antiguos completada >> "%BACKUP_LOG%"
 
-REM Clean old backups (older than retention days)
-echo Cleaning old backups (older than %RETENTION_DAYS% days)...
-forfiles /p %BACKUP_DIR% /s /m *.zip /d -%RETENTION_DAYS% /c "cmd /c del @path" 2>nul
-forfiles /p %BACKUP_DIR% /s /m *.tar.gz /d -%RETENTION_DAYS% /c "cmd /c del @path" 2>nul
+REM Mostrar estadísticas
+echo ==========================================
+echo Estadísticas de Backups
+echo ==========================================
 
-REM Generate backup report
-echo Generating backup report...
-(
-echo Backup Report - %DATE%
-echo =====================
-echo.
-echo Database Backup: db_backup_%DATE%.zip
-echo Media Backup: media_backup_%DATE%.tar.gz
-echo Static Backup: static_backup_%DATE%.tar.gz
-echo Config Backup: config_backup_%DATE%.zip
-echo.
-echo Backup completed at: %date% %time%
-) > %BACKUP_DIR%\backup_report_%DATE%.txt
+for /f %%A in ('dir /b "%DB_BACKUP_DIR%\*.sql.gz" 2^>nul ^| find /c /v ""') do set DB_COUNT=%%A
+echo Backups de base de datos: %DB_COUNT% archivos
 
-echo Backup completed successfully!
-echo Backup files created:
-dir %BACKUP_DIR%\*_%DATE%.*
+for /f %%A in ('dir /b "%MEDIA_BACKUP_DIR%\*.tar.gz" 2^>nul ^| find /c /v ""') do set MEDIA_COUNT=%%A
+echo Backups de media: %MEDIA_COUNT% archivos
+
+echo ==========================================
+
+if defined BACKUP_FAILED (
+    echo [ERROR] Backup completado con errores
+    echo [ERROR] Backup completado con errores >> "%BACKUP_LOG%"
+    exit /b 1
+) else (
+    echo [INFO] Backup completado exitosamente
+    echo [INFO] Backup completado exitosamente >> "%BACKUP_LOG%"
+    exit /b 0
+)

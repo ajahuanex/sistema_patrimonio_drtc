@@ -18,6 +18,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   redis:
     image: redis:7-alpine
@@ -28,10 +29,11 @@ services:
     networks:
       - patrimonio_network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
 
   web:
     build: 
@@ -62,11 +64,17 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
       - BASE_URL=${BASE_URL}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   celery:
     build: 
@@ -84,6 +92,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_healthy
     environment:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=patrimonio.settings.production
@@ -94,6 +104,16 @@ services:
       - EMAIL_PORT=${EMAIL_PORT}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A patrimonio inspect ping -d celery@$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   celery-beat:
     build: 
@@ -111,12 +131,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_healthy
     environment:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=patrimonio.settings.production
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery beat' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   nginx:
     image: nginx:alpine
@@ -135,12 +167,14 @@ services:
     networks:
       - patrimonio_network
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   certbot:
     image: certbot/certbot
@@ -148,25 +182,100 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait ${!}; done;'"
 
   backup:
     image: postgres:15
-    restart: "no"
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
+      - ./logs:/logs
+      - media_files:/media
     networks:
       - patrimonio_network
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
     entrypoint: /bin/bash
-    command: -c "while true; do pg_dump -h db -U ${POSTGRES_USER} ${POSTGRES_DB} > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql && find /backups -name '*.sql' -mtime +7 -delete; sleep 86400; done"
+    command: >
+      -c "
+      echo 'Servicio de backup iniciado';
+      mkdir -p /backups/db /backups/media;
+      while true; do
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S);
+        echo \"[$${TIMESTAMP}] Iniciando backup de base de datos...\" | tee -a /logs/backup.log;
+        
+        if pg_dump -h db -U $${POSTGRES_USER} $${POSTGRES_DB} > /backups/db/patrimonio_$${TIMESTAMP}.sql; then
+          echo \"[$${TIMESTAMP}] Dump completado, comprimiendo...\" | tee -a /logs/backup.log;
+          gzip /backups/db/patrimonio_$${TIMESTAMP}.sql;
+          BACKUP_SIZE=$$(du -h /backups/db/patrimonio_$${TIMESTAMP}.sql.gz | cut -f1);
+          echo \"[$${TIMESTAMP}] Backup de DB completado: patrimonio_$${TIMESTAMP}.sql.gz ($${BACKUP_SIZE})\" | tee -a /logs/backup.log;
+        else
+          echo \"[$${TIMESTAMP}] ERROR: Fallo en backup de base de datos\" | tee -a /logs/backup.log;
+        fi;
+        
+        if [ -d /media ] && [ \"$$(ls -A /media 2>/dev/null)\" ]; then
+          echo \"[$${TIMESTAMP}] Iniciando backup de archivos media...\" | tee -a /logs/backup.log;
+          if tar -czf /backups/media/media_$${TIMESTAMP}.tar.gz -C / media/; then
+            MEDIA_SIZE=$$(du -h /backups/media/media_$${TIMESTAMP}.tar.gz | cut -f1);
+            echo \"[$${TIMESTAMP}] Backup de media completado: media_$${TIMESTAMP}.tar.gz ($${MEDIA_SIZE})\" | tee -a /logs/backup.log;
+          else
+            echo \"[$${TIMESTAMP}] ERROR: Fallo en backup de media\" | tee -a /logs/backup.log;
+          fi;
+        else
+          echo \"[$${TIMESTAMP}] Directorio media vacío, saltando backup\" | tee -a /logs/backup.log;
+        fi;
+        
+        echo \"[$${TIMESTAMP}] Limpiando backups antiguos (>$${BACKUP_RETENTION_DAYS:-7} días)...\" | tee -a /logs/backup.log;
+        DELETED_DB=$$(find /backups/db -name '*.sql.gz' -type f -mtime +$${BACKUP_RETENTION_DAYS:-7} -delete -print | wc -l);
+        DELETED_MEDIA=$$(find /backups/media -name '*.tar.gz' -type f -mtime +$${BACKUP_RETENTION_DAYS:-7} -delete -print | wc -l);
+        echo \"[$${TIMESTAMP}] Eliminados $${DELETED_DB} backups de DB y $${DELETED_MEDIA} backups de media\" | tee -a /logs/backup.log;
+        
+        DB_COUNT=$$(find /backups/db -name '*.sql.gz' -type f | wc -l);
+        MEDIA_COUNT=$$(find /backups/media -name '*.tar.gz' -type f | wc -l);
+        echo \"[$${TIMESTAMP}] Backups actuales: $${DB_COUNT} DB, $${MEDIA_COUNT} media\" | tee -a /logs/backup.log;
+        echo \"[$${TIMESTAMP}] Próximo backup en 24 horas (3:00 AM)\" | tee -a /logs/backup.log;
+        
+        CURRENT_HOUR=$$(date +%H);
+        CURRENT_MIN=$$(date +%M);
+        TARGET_HOUR=3;
+        TARGET_MIN=0;
+        
+        if [ $${CURRENT_HOUR} -lt $${TARGET_HOUR} ]; then
+          HOURS_UNTIL=$$((TARGET_HOUR - CURRENT_HOUR));
+          MINS_UNTIL=$$((TARGET_MIN - CURRENT_MIN));
+        else
+          HOURS_UNTIL=$$((24 - CURRENT_HOUR + TARGET_HOUR));
+          MINS_UNTIL=$$((TARGET_MIN - CURRENT_MIN));
+        fi;
+        
+        if [ $${MINS_UNTIL} -lt 0 ]; then
+          HOURS_UNTIL=$$((HOURS_UNTIL - 1));
+          MINS_UNTIL=$$((60 + MINS_UNTIL));
+        fi;
+        
+        SLEEP_SECONDS=$$((HOURS_UNTIL * 3600 + MINS_UNTIL * 60));
+        
+        if [ $${SLEEP_SECONDS} -le 0 ]; then
+          SLEEP_SECONDS=86400;
+        fi;
+        
+        sleep $${SLEEP_SECONDS};
+      done
+      "
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /logs/backup.log && test $$(find /logs/backup.log -mmin -1500 | wc -l) -gt 0"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
 
 volumes:
   postgres_data:

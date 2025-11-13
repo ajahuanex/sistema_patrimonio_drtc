@@ -54,6 +54,118 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+# Celery Beat Schedule - Tareas Programadas
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Limpiar papelera de reciclaje cada día a las 4:00 AM
+    'cleanup-recycle-bin': {
+        'task': 'apps.core.tasks.cleanup_recycle_bin_task',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {
+            'expires': 3600,  # Expira después de 1 hora si no se ejecuta
+        }
+    },
+    # Advertencias de papelera (7 días antes) - ejecutar diariamente a las 9:00 AM
+    'send-recycle-bin-warnings': {
+        'task': 'apps.core.tasks.send_recycle_bin_warnings',
+        'schedule': crontab(hour=9, minute=0),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Advertencias finales de papelera (1 día antes) - ejecutar cada 6 horas
+    'send-recycle-bin-final-warnings': {
+        'task': 'apps.core.tasks.send_recycle_bin_final_warnings',
+        'schedule': crontab(minute=0, hour='*/6'),  # 00:00, 06:00, 12:00, 18:00
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Limpiar reportes expirados cada día a las 2:00 AM
+    'limpiar-reportes-expirados': {
+        'task': 'apps.reportes.tasks.limpiar_reportes_expirados',
+        'schedule': crontab(hour=2, minute=0),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Actualizar estadísticas en caché cada hora
+    'actualizar-estadisticas-cache': {
+        'task': 'apps.reportes.tasks.actualizar_estadisticas_cache',
+        'schedule': crontab(minute=0),  # Cada hora en punto
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Limpiar archivos temporales cada 6 horas
+    'limpiar-archivos-temporales': {
+        'task': 'apps.core.tasks.limpiar_archivos_temporales',
+        'schedule': crontab(minute=0, hour='*/6'),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Procesar notificaciones pendientes cada 5 minutos
+    'procesar-notificaciones-pendientes': {
+        'task': 'apps.notificaciones.tasks.procesar_notificaciones_pendientes',
+        'schedule': crontab(minute='*/5'),
+        'options': {
+            'expires': 300,  # 5 minutos
+        }
+    },
+    # Verificar alertas de mantenimiento cada día a las 8:00 AM
+    'verificar-alertas-mantenimiento': {
+        'task': 'apps.notificaciones.tasks.verificar_alertas_mantenimiento',
+        'schedule': crontab(hour=8, minute=0),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Verificar alertas de depreciación cada lunes a las 9:00 AM
+    'verificar-alertas-depreciacion': {
+        'task': 'apps.notificaciones.tasks.verificar_alertas_depreciacion',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Limpiar notificaciones expiradas cada día a las 1:00 AM
+    'limpiar-notificaciones-expiradas': {
+        'task': 'apps.notificaciones.tasks.limpiar_notificaciones_expiradas',
+        'schedule': crontab(hour=1, minute=0),
+        'options': {
+            'expires': 3600,
+        }
+    },
+    # Reenviar notificaciones fallidas cada 2 horas
+    'reenviar-notificaciones-fallidas': {
+        'task': 'apps.notificaciones.tasks.reenviar_notificaciones_fallidas',
+        'schedule': crontab(minute=0, hour='*/2'),
+        'options': {
+            'expires': 3600,
+        }
+    },
+}
+
+# Configuración adicional de Celery
+CELERY_TASK_ROUTES = {
+    'apps.reportes.tasks.generar_reporte_async': {'queue': 'reportes'},
+    'apps.core.tasks.importacion_masiva_excel': {'queue': 'importaciones'},
+    'apps.mobile.tasks.procesar_sincronizacion_async': {'queue': 'mobile'},
+    'apps.core.tasks.cleanup_recycle_bin_task': {'queue': 'maintenance'},
+    'apps.core.tasks.send_recycle_bin_warnings': {'queue': 'notifications'},
+    'apps.core.tasks.send_recycle_bin_final_warnings': {'queue': 'notifications'},
+}
+
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+CELERY_TASK_CREATE_MISSING_QUEUES = True
+
+# Configuración de workers
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
